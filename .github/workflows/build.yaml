@@ -1,0 +1,99 @@
+name: "Build"
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+      - "alpha-*"
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: "write"
+    strategy:
+      fail-fast: false
+      matrix:
+        ghidra:
+          - "11.2"
+          - "11.2.1"
+          - "11.3"
+          - "11.3.1"
+          - "11.3.2"
+          - "11.4"
+          - "11.4.1"
+          - "11.4.2"
+          - "11.4.3"
+          - "12.0"
+          - "12.0.1"
+          - "12.0.2"
+          - "12.0.3"
+          - "12.0.4"
+          - "12.1"
+          - "12.1.2"
+    steps:
+      -
+        name: "Checkout"
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      -
+        name: "Setup JDK"
+        uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: "temurin"
+      -
+        name: Install Ghidra ${{ matrix.ghidra }}
+        uses: antoniovazquezblanco/setup-ghidra@v2.1.2
+        with:
+          auth_token: ${{ secrets.GITHUB_TOKEN }}
+          version: ${{ matrix.ghidra }}
+      -
+        name: "Build extension"
+        run: cd xap && gradle buildExtension
+      -
+        name: "Upload artifacts"
+        uses: actions/upload-artifact@v7
+        with:
+          name: Extension_Ghidra_${{ matrix.ghidra }}
+          path: "xap/dist/*"
+          if-no-files-found: "error"
+        if: ${{ !cancelled() }}
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs:
+      - "build"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: "write"
+    steps:
+      -
+        name: "Checkout"
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      -
+        name: "Setup JDK"
+        uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          java-package: "jre"
+      -
+        name: "Download artifacts"
+        uses: actions/download-artifact@v5
+        with:
+          path: "ext_out/"
+          merge-multiple: true
+      -
+        name: "GitHub release"
+        uses: ncipollo/release-action@v1.12.0
+        with:
+          artifacts: "ext_out/*"
+          draft: true

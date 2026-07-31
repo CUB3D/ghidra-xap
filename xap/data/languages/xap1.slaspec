@@ -1,0 +1,294 @@
+
+define endian=big;
+define alignment=1;
+
+define space ram     type=ram_space      size=2  default;
+
+define space register type=register_space size=2;
+
+define register offset=0x00 size=2 [ 
+	AL AH
+	X  Y
+];
+define register offset=0x00 size=4 [ A ];
+
+define register offset=0x80 size=1 [
+	Flags
+];
+
+define bitrange C=Flags[0,1]
+                S=Flags[1,1]
+                N=Flags[2,1]
+                Z=Flags[3,1]
+;
+
+
+define token opbyte (24)
+	addrMode = (0, 1)
+	reg = (2, 3)
+	opc = (4, 7)
+	addr = (8, 17) signed
+   op2_7     = (2,7)
+;
+
+attach variables [ reg ] [ AH AL X Y ];
+
+directAddr: "@"addr is addr { export *[ram]:2 addr; }
+indexedX: "@(" addr "," X ")" is addr & X { 
+	local tmp:2 = X + addr;
+	local tmp2:2 = *[ram]:2 tmp;
+	export *[const]:2 tmp2;
+}
+indexedY: "@(" addr "," Y ")" is addr & Y { 
+	local tmp:2 = Y + addr;
+	local tmp2:2 = *[ram]:2 tmp;
+	export *[const]:2 tmp2;
+}
+
+addrDirectOrIndexed: directAddr is directAddr & addrMode=0b01 { export directAddr; }
+addrDirectOrIndexed: indexedX is indexedX & addrMode=0b10 { export indexedX; }
+addrDirectOrIndexed: indexedY is indexedY & addrMode=0b11 { export indexedY; }
+
+addrData: addr is addr & addrMode=0b00 { export *[const]:2 addr; }
+addrData: directAddr is directAddr & addrMode=0b01 { export directAddr; }
+addrData: indexedX is indexedX & addrMode=0b10 { export indexedX; }
+addrData: indexedY is indexedY & addrMode=0b11 { export indexedY; }
+
+addrBranch: tgt is addr & addrMode=0b00 [tgt = inst_start + (addr*3);] { export *[ram]:2 tgt; }
+addrBranch: "@" addr is addr & addrMode=0b01 { 
+	local tgt:2 = addr;
+	local tmp:2 = *[ram]:2 tgt;
+	export *[ram]:2 tmp;
+}
+addrBranch: addr", " X is X & addr & addrMode=0b10 {
+	local tgt:2 = X + addr;
+	export *[ram]:2 tgt;
+}
+addrBranch: "@(" addr, Y ")" is Y & addr & addrMode=0b11 {
+	local tgt:2 = Y + addr; 
+	local tmp:2 = *[ram]:2 tgt;
+	export *[ram]:2 tmp;
+}
+
+
+
+:ADD reg, addrData is opc=0b0011 & reg & addrData {
+	C = carry(reg, addrData);
+	local res:3 = zext(reg) + zext(addrData);
+	local s:3 = zext(reg >> 15) ^ zext(addrData >> 15) ^ (res >> 16);
+	S = s != 0;
+	reg = res:2;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+:ADDC reg, addrData is opc=0b0100 & reg & addrData {
+	local res:3 = zext(reg) + zext(addrData) + zext(C);
+	local s:3 = zext(reg >> 15) ^ zext(addrData >> 15) ^ (res >> 16);
+	S = s != 0;
+	C = (res >> 16) != 0;
+	reg = res:2;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+:AND reg, addrData is opc=0b1100 & reg & addrData {
+	reg = reg & addrData;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+:BCC addrBranch is op2_7=0b111110 & addrBranch {
+	if(C != 0) goto inst_next;
+	goto [addrBranch];
+}
+
+:BCS addrBranch is op2_7=0b111111 & addrBranch {
+	if(C == 0) goto inst_next;
+	goto [addrBranch];
+}
+
+:BEQ addrBranch is op2_7=0b111101 & addrBranch {
+	if(Z == 0) goto inst_next;
+	goto [addrBranch];
+}
+
+:BLT addrBranch is op2_7=0b111001 & addrBranch {
+	if(S == 0) goto inst_next;
+	goto [addrBranch];
+}
+
+:BMI addrBranch is op2_7=0b111011 & addrBranch {
+	if(N == 0) goto inst_next;
+	goto [addrBranch];
+}
+
+:BNE addrBranch is op2_7=0b111100 & addrBranch {
+	if(Z != 0) goto inst_next;
+	goto [addrBranch];
+}
+
+:BPL addrBranch is op2_7=0b111010 & addrBranch {
+	if(N != 0) goto inst_next;
+	goto [addrBranch];
+}
+
+:BRA addrBranch is op2_7=0b111000 & addrBranch {
+	goto addrBranch;
+}
+
+define pcodeop brk;
+:BRK is op2_7=0b000001 {
+	brk();
+}
+
+:BSR addrBranch is op2_7=0b100111 & addrBranch {
+	X = inst_next;
+	call [addrBranch];
+}
+
+:CMP reg, addrData is opc=0b1000 & reg & addrData {
+	local res:3 = zext(reg) - zext(addrData);
+	C = (res >> 16) != 0;
+	local s:3 = zext(reg >> 15) ^ zext(addrData >> 15) ^ (res >> 16);
+	S = s != 0;
+	local res2:2 = res:2;
+	N = res2 s< 0;
+	Z = res2 == 0;
+}
+
+
+:DIV addrData is op2_7=0b100101 & addrData {
+	local tmp:4 = A >> 1;
+	local div:4 = tmp / zext(addrData);
+	local rem:4 = tmp % zext(addrData);
+	
+	local ah:4 = (rem << 1) | (A & 1);
+	AH = ah:2;
+	AL = div:2;
+}
+
+:LD reg, addrData is opc=0b0001 & reg & addrData {
+	reg = addrData;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+:MULT addrData is op2_7=0b100100 & addrData {
+	A = zext(AH) + (zext(AL) * zext(addrData));
+}
+
+
+:NADD reg, addrData is opc=0b0111 & reg & addrData {
+	C = carry(-reg, addrData);
+	local res:3 = zext(-reg) + zext(addrData);
+	local s:3 = zext((-reg) >> 15) ^ zext(addrData >> 15) ^ (res >> 16);
+	S = s != 0;
+	reg = res:2;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+define pcodeop nop;
+:NOP is op2_7=0b000000 {
+	nop();
+}
+
+:OR reg, addrData is opc=0b1011 & reg & addrData {
+	reg = reg | addrData;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+define pcodeop print;
+:PRINT reg, addr is addr & opc=0b1010 & reg & addrMode=0b00 {
+	print(reg, addr:2);
+}
+
+shiftCount: addrData is addrData { local tmp:2 = addrData & 0b1111; export *[const]:2 tmp; }
+
+:SAL shiftCount is op2_7=0b101000 & shiftCount {
+	if(shiftCount != 0) goto <normal>;
+		C = ((A >> 31) & 1) != 0;
+		goto inst_next;
+	<normal>
+	C = ((A >> (31 - A + 1)) & 1) != 0;
+	A = A << shiftCount;
+}
+
+:SAR shiftCount is op2_7=0b101001 & shiftCount {
+	if(shiftCount != 0) goto <normal>;
+		C = (A & 1) != 0;
+		goto inst_next;
+	<normal>
+	C = ((A >> shiftCount-1) & 1) != 0;
+	A = A s>> shiftCount;
+}
+
+:SCL shiftCount is op2_7=0b101010 & shiftCount {
+	if(shiftCount != 0) goto <normal>;
+		C = ((A >> 31) & 1) != 0;
+		goto inst_next;
+	<normal>
+	local oldc:4 = zext(C);
+	C = ((A >> (31 - A + 1)) & 1) != 0;
+	A = (A << shiftCount) | oldc;
+}
+
+:SCR shiftCount is op2_7=0b101011 & shiftCount {
+	if(shiftCount != 0) goto <normal>;
+		C = (A & 1) != 0;
+		goto inst_next;
+	<normal>
+	local oldc:4 = zext(C);
+	C = ((A >> shiftCount-1) & 1) != 0;
+	A = (A >> shiftCount) | (oldc << 31);
+}
+
+define pcodeop sif;
+:SIF is op2_7=0b000011 {
+	sif();
+}
+
+define pcodeop sleep;
+:SLEEP is op2_7=0b000010 {
+	sleep();
+}
+
+:ST reg, addrDirectOrIndexed is opc=0b0010 & reg & addrDirectOrIndexed {
+	addrDirectOrIndexed = reg;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+:SUB reg, addrData is opc=0b0101 & reg & addrData {
+	local res:3 = zext(reg) - zext(addrData);
+	C = (res >> 16) != 0;
+	local s:3 = zext(reg >> 15) ^ zext(addrData >> 15) ^ (res >> 16);
+	S = s != 0;
+	reg = res:2;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+:SUBC reg, addrData is opc=0b0110 & reg & addrData {
+	local res:3 = zext(reg) - zext(addrData) - zext(C);
+	C = (res >> 16) != 0;
+	local s:3 = zext(reg >> 15) ^ zext(addrData >> 15) ^ (res >> 16);
+	S = s != 0; 
+	reg = res:2;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+:TST addrData is op2_7=0b100110 & addrData {
+	N = addrData s< 0;
+	Z = addrData == 0;
+}
+
+:XOR reg, addrData is opc=0b1101 & reg & addrData {
+	reg = reg ^ addrData;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<language_definitions>
+
+   <language processor="XAP1"
+            endian="big"
+            size="24"
+            variant="default"
+            version="1.0"
+            slafile="xap1.sla"
+            processorspec="skel.pspec"
+            id="XAP1:LE:24:default">
+    <description>XAP1 processors</description>
+    <compiler name="default" spec="skel.cspec" id="default"/>
+  </language>
+  
+     <language processor="XAP2"
+            endian="big"
+            size="16"
+            variant="default"
+            version="1.0"
+            slafile="xap2.sla"
+            processorspec="skel.pspec"
+            id="XAP2:LE:16:default">
+    <description>XAP2 processors</description>
+    <compiler name="default" spec="skel.cspec" id="default"/>
+  </language>
+  
+</language_definitions>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<compiler_spec>
+  <data_organization>
+	<pointer_size value="2" />
+  </data_organization>
+  <global>
+    <range space="ram"/>
+  </global>
+  <stackpointer register="Y" space="ram"/>
+  
+  <returnaddress>
+        <register name="X"/>
+    </returnaddress>
+  
+  <default_proto>
+    <prototype name="__stdcall" extrapop="0" stackshift="0">
+      <input>
+      <pentry minsize="1" maxsize="2">
+          <register name="AL"/>
+        </pentry>
+        <pentry minsize="1" maxsize="2">
+          <register name="AH"/>
+        </pentry>
+        <pentry minsize="1" maxsize="500" align="2">
+          <addr offset="2" space="stack"/>
+        </pentry>
+      </input>
+      <output>
+        <pentry minsize="1" maxsize="2">
+          <register name="AL"/>
+        </pentry>
+        <pentry minsize="3" maxsize="4">
+          <addr space="join" piece1="AH" piece2="AL"/>
+        </pentry>
+      </output>
+    </prototype>
+  </default_proto>
+  
+</compiler_spec>

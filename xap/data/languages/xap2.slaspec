@@ -1,0 +1,435 @@
+
+#TODO: test on real binary
+
+define endian=big;
+define alignment=1;
+
+define space ram     type=ram_space      size=2  default;
+
+define space register type=register_space size=2;
+
+define register offset=0x00 size=2 [ 
+	AL AH
+	_ X 
+	Y
+	
+	_ IX
+	IY
+];
+define register offset=0x05 size=1 [ XH ];
+define register offset=0x0a size=1 [ IXH ];
+define register offset=0x00 size=4 [ A ];
+
+# User mode reg
+#define register offset=0x06 size=2 [ UX UY ];
+
+define register offset=0x80 size=1 [
+	flags
+];
+
+define register offset=0x100 size=4 [
+    ctx
+];
+
+define context ctx
+    addrExt         = (  0, 31) noflow
+;
+
+define bitrange T=flags[7,1]
+				B=flags[6,1]
+				I=flags[5,1]
+				U=flags[4,1]
+				C=flags[3,1]
+                S=flags[2,1]
+                N=flags[1,1]
+                Z=flags[0,1]
+;
+
+define token opbyte (16)
+	addrMode = (0, 1)
+	reg = (2, 3)
+	opc = (4, 7)
+	arg = (8, 15) signed
+   op0_15     = (0,15)
+   op2_7     = (2,7)
+   op0_7     = (0,7)
+;
+
+attach variables [ reg ] [ AH AL X Y ];
+
+# Read the full 24-bit {XH, X} value
+X_24: is epsilon {
+	local tmp:2 = &XH;
+	export *[register]:3 tmp;
+}
+
+# For interrupts
+IX_24: is epsilon {
+	local tmp:2 = &IXH;
+	export *[register]:3 tmp;
+}
+
+directAddr: "@"arg is arg { export *[ram]:2 arg; }
+indexedX: "@(" arg "," X ")" is arg & X { 
+	local tmp:2 = X + arg;
+	local tmp2:2 = *[ram]:2 tmp;
+	export *[const]:2 tmp2;
+}
+indexedY: "@(" arg "," Y ")" is arg & Y { 
+	local tmp:2 = Y + arg;
+	local tmp2:2 = *[ram]:2 tmp;
+	export *[const]:2 tmp2;
+}
+
+addrDirectOrIndexed: directAddr is directAddr & addrMode=0b01 { export directAddr; }
+addrDirectOrIndexed: indexedX is indexedX & addrMode=0b10 { export indexedX; }
+addrDirectOrIndexed: indexedY is indexedY & addrMode=0b11 { export indexedY; }
+
+addrData: arg is arg & addrMode=0b00 { export *[const]:2 arg; }
+addrData: directAddr is directAddr & addrMode=0b01 { export directAddr; }
+addrData: indexedX is indexedX & addrMode=0b10 { export indexedX; }
+addrData: indexedY is indexedY & addrMode=0b11 { export indexedY; }
+
+addrBranch: tgt is arg & addrMode=0b00 [tgt = inst_start + (((addrExt << 8) | arg)*3);] { export *[ram]:3 tgt; }
+addrBranch: "@" extArg is arg & addrMode=0b01 [ extArg = (addrExt << 8) | arg; ] { 
+	local tgt:2 = extArg;
+	local tmp:2 = *[ram]:2 tgt;
+	local tmp2:3 = zext(tmp) | zext(XH << 16);
+	export *[ram]:3 tmp2;
+}
+addrBranch: extArg", " X is X & arg & addrMode=0b10 [ extArg = (addrExt << 8) | arg; ] {
+	local tgt:2 = X + extArg;
+	local tmp2:3 = zext(tgt) | zext(XH << 16);
+	export *[ram]:3 tmp2;
+}
+addrBranch: "@(" extArg, Y ")" is Y & arg & addrMode=0b11 [ extArg = (addrExt << 8) | arg; ] {
+	local tgt:2 = Y + extArg; 
+	local tmp:2 = *[ram]:2 tgt;
+	local tmp2:3 = zext(tmp) | zext(XH << 16);
+	export *[ram]:3 tmp2;
+}
+branchExtend0: is arg & op0_7=0b00000000 [ addrExt = arg; ] {}
+branchExtend1: is arg & op0_7=0b00000000 [ addrExt = (addrExt << 8) | arg; ] {}
+
+unsignedPrefix: is op0_15=0b0000000000001001 {}
+# If > 32, treat as 32
+shiftCountMax: addrData is addrData { local tmp:2 = addrData; local tmp1:2 = (zext(tmp > 32) * 32) + (zext(tmp <= 32) * tmp); export *[const]:2 tmp1; }
+# Only use 5 LSBs
+shiftCountMask: addrData is addrData { local tmp:2 = addrData & 0b11111; export *[const]:2 tmp; }
+
+UX: "UX" is epsilon { export X; }
+UY: "UY" is epsilon { export Y; }
+
+
+:ADD reg, addrData is opc=0b0011 & reg & addrData {
+	C = carry(reg, addrData);
+	local res:3 = zext(reg) + zext(addrData);
+	local s:3 = zext(reg >> 15) ^ zext(addrData >> 15) ^ (res >> 16);
+	S = s != 0;
+	reg = res:2;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+:ADDC reg, addrData is opc=0b0100 & reg & addrData {
+	local res:3 = zext(reg) + zext(addrData) + zext(C);
+	local s:3 = zext(reg >> 15) ^ zext(addrData >> 15) ^ (res >> 16);
+	S = s != 0;
+	C = (res >> 16) != 0;
+	reg = res:2;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+:AND reg, addrData is opc=0b1100 & reg & addrData {
+	reg = reg & addrData;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+:ASL shiftCountMax is op2_7=0b101000 & shiftCountMax {
+	if(shiftCountMax != 0) goto <normal>;
+		C = ((A >> 31) & 1) != 0;
+		goto inst_next;
+	<normal>
+	C = ((A >> (31 - A + 1)) & 1) != 0;
+	A = A << shiftCountMax;
+}
+
+:ASR shiftCountMax is op2_7=0b101001 & shiftCountMax {
+	if(shiftCountMax != 0) goto <normal>;
+		C = (A & 1) != 0;
+		goto inst_next;
+	<normal>
+	C = ((A >> shiftCountMax-1) & 1) != 0;
+	A = A s>> shiftCountMax;
+}
+
+define pcodeop block_copy;
+:BC is op0_15=0b1111111100001001 {
+	block_copy(X, Y, AL);
+}
+
+:BCC addrBranch is op2_7=0b111110 & addrBranch {
+	if(C != 0) goto inst_next;
+	goto [addrBranch];
+}
+
+:BCS addrBranch is op2_7=0b111111 & addrBranch {
+	if(C == 0) goto inst_next;
+	goto [addrBranch];
+}
+
+:BEQ addrBranch is op2_7=0b111101 & addrBranch {
+	if(Z == 0) goto inst_next;
+	goto [addrBranch];
+}
+
+:BLT addrBranch is op2_7=0b111001 & addrBranch {
+	if(S == 0) goto inst_next;
+	goto [addrBranch];
+}
+
+:BMI addrBranch is op2_7=0b111011 & addrBranch {
+	if(N == 0) goto inst_next;
+	goto [addrBranch];
+}
+
+:BNE addrBranch is op2_7=0b111100 & addrBranch {
+	if(Z != 0) goto inst_next;
+	goto [addrBranch];
+}
+
+:BPL addrBranch is op2_7=0b111010 & addrBranch {
+	if(N != 0) goto inst_next;
+	goto [addrBranch];
+}
+
+:BRA addrBranch is op2_7=0b111000 & addrBranch {
+	goto addrBranch;
+}
+
+:BRA2 addrBranch is branchExtend0 ; op2_7=0b111000 & addrBranch {
+	goto addrBranch;
+}
+
+:BRA3 addrBranch is branchExtend0 ; branchExtend1 ; op2_7=0b111000 & addrBranch {
+	goto addrBranch;
+}
+
+define pcodeop brk;
+:BRK is op0_15=0b0000000000000100 {
+	brk();
+}
+
+:BRXL is op0_15=0b1111111000001001 {
+	local dest:3 = inst_next + sext(X:2)*3;
+	goto [dest];
+}
+
+:BSR addrBranch is op2_7=0b100111 & addrBranch & X_24 {
+	X_24 = inst_next;
+	call [addrBranch];
+}
+
+
+:CMP reg, addrData is opc=0b1000 & reg & addrData {
+	local res:3 = zext(reg) - zext(addrData);
+	C = (res >> 16) != 0;
+	local s:3 = zext(reg >> 15) ^ zext(addrData >> 15) ^ (res >> 16);
+	S = s != 0;
+	local res2:2 = res:2;
+	N = res2 s< 0;
+	Z = res2 == 0;
+}
+
+
+:LD reg, addrData is opc=0b0001 & reg & addrData {
+	reg = addrData;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+:LD flags, @( arg, Y ) is arg & op0_7=0b00000101 & Y & flags {
+	local dest:2 = Y + arg;
+	flags = *[ram]:1 dest;
+}
+
+:LD UX, @( arg, Y ) is arg & op0_7=0b00000110 & Y & UX {
+	local dest:2 = Y + arg;
+	UX = *[ram]:1 dest;
+}
+
+:LD XH, @( arg, Y ) is arg & op0_7=0b00001110 & Y & XH {
+	local dest:2 = Y + arg;
+	XH = *[ram]:1 dest;
+}
+
+:LD UY, @( arg, Y ) is arg & op0_7=0b00000111 & Y & UY {
+	local dest:2 = Y + arg;
+	UY = *[ram]:1 dest;
+}
+
+# Note: LSL is an alias for ASL
+
+:LSR shiftCountMax is unsignedPrefix ; op2_7=0b101001 & shiftCountMax {
+	if(shiftCountMax != 0) goto <normal>;
+		C = (A & 1) != 0;
+		goto inst_next;
+	<normal>
+	C = ((A >> shiftCountMax-1) & 1) != 0;
+	A = (A >> shiftCountMax);
+}
+
+:NADD reg, addrData is opc=0b0111 & reg & addrData {
+	C = carry(-reg, addrData);
+	local res:3 = zext(-reg) + zext(addrData);
+	local s:3 = zext((-reg) >> 15) ^ zext(addrData >> 15) ^ (res >> 16);
+	S = s != 0;
+	reg = res:2;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+define pcodeop nop;
+:NOP is op0_15=0b0000000000000000 {
+	nop();
+}
+
+:OR reg, addrData is opc=0b1011 & reg & addrData {
+	reg = reg | addrData;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+define pcodeop print;
+:PRINT reg, arg is arg & opc=0b1010 & reg & addrMode=0b00 {
+	print(reg, arg:2);
+}
+
+:ROL shiftCountMask is op2_7=0b101010 & shiftCountMask {
+	if(shiftCountMask != 0) goto <normal>;
+		C = ((A >> 31) & 1) != 0;
+		goto inst_next;
+	<normal>
+	local oldc:4 = zext(C);
+	C = ((A >> (31 - A + 1)) & 1) != 0;
+	A = (A << shiftCountMask) | oldc;
+}
+
+:ROR shiftCountMask is op2_7=0b101011 & shiftCountMask {
+	if(shiftCountMask != 0) goto <normal>;
+		C = (A & 1) != 0;
+		goto inst_next;
+	<normal>
+	local oldc:4 = zext(C);
+	C = ((A >> shiftCountMask-1) & 1) != 0;
+	A = (A >> shiftCountMask) | (oldc << 31);
+}
+
+define pcodeop rti;
+:RTI @(arg, Y) is op0_7=0b00001101 & arg & Y & IX_24 {
+	local addr:2 = arg + Y;
+	flags = *[ram]:1 addr;
+	rti();
+	return [IX_24];
+}
+
+:RTS is op0_15=0b0000000011100010 & X_24 {
+	goto [X_24];
+}
+
+:SDIV addrData is op2_7=0b101101 & addrData {
+	local tmp:4 = A >> 1;
+	local div:4 = tmp s/ sext(addrData);
+	local rem:4 = tmp s% sext(addrData);
+	
+	local ah:4 = (rem << 1) | (A & 1);
+	AH = ah:2;
+	AL = div:2;
+}
+
+define pcodeop sif;
+:SIF is op0_15=0b0000000000001100 {
+	sif();
+}
+
+define pcodeop sleep;
+:SLEEP is op0_15=0b0000000000001000 {
+	sleep();
+}
+
+:SMULT addrData is op2_7=0b100100 & addrData {
+	A = sext(AL) * sext(addrData);
+}
+
+:ST reg, addrDirectOrIndexed is opc=0b0010 & reg & addrDirectOrIndexed {
+	addrDirectOrIndexed = reg;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+:ST flags, @( arg, Y ) is arg & op0_7=0b00000001 & Y & flags {
+	local dest:2 = Y + arg;
+	*[ram]:1 dest = flags;
+}
+
+:ST UX, @( arg, Y ) is arg & op0_7=0b00000010 & Y & UX {
+	local dest:2 = Y + arg;
+	*[ram]:1 dest = UX;
+}
+
+:ST XH, @( arg, Y ) is arg & op0_7=0b00001010 & Y & XH {
+	local dest:2 = Y + arg;
+	*[ram]:1 dest = XH;
+}
+
+:ST UY, @( arg, Y ) is arg & op0_7=0b00000011 & Y & UY {
+	local dest:2 = Y + arg;
+	*[ram]:1 dest = UY;
+}
+
+:SUB reg, addrData is opc=0b0101 & reg & addrData {
+	local res:3 = zext(reg) - zext(addrData);
+	C = (res >> 16) != 0;
+	local s:3 = zext(reg >> 15) ^ zext(addrData >> 15) ^ (res >> 16);
+	S = s != 0;
+	reg = res:2;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+:SUBC reg, addrData is opc=0b0110 & reg & addrData {
+	local res:3 = zext(reg) - zext(addrData) - zext(C);
+	C = (res >> 16) != 0;
+	local s:3 = zext(reg >> 15) ^ zext(addrData >> 15) ^ (res >> 16);
+	S = s != 0; 
+	reg = res:2;
+	N = reg s< 0;
+	Z = reg == 0;
+}
+
+:TST addrData is op2_7=0b100110 & addrData {
+	N = addrData s< 0;
+	Z = addrData == 0;
+}
+
+:UDIV addrData is unsignedPrefix ; op2_7=0b101101 & addrData {
+	local tmp:4 = A >> 1;
+	local div:4 = tmp / zext(addrData);
+	local rem:4 = tmp % zext(addrData);
+	
+	local ah:4 = (rem << 1) | (A & 1);
+	AH = ah:2;
+	AL = div:2;
+}
+
+:UMULT addrData is unsignedPrefix ; op2_7=0b100100 & addrData {
+	A = zext(AL) * zext(addrData);
+}
+
+:XOR reg, addrData is opc=0b1101 & reg & addrData {
+	reg = reg ^ addrData;
+	N = reg s< 0;
+	Z = reg == 0;
+}
