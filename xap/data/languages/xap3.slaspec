@@ -1,0 +1,292 @@
+
+#TODO: test on real binary
+#TODO: split code / ram
+##TODO: B/Le
+#TODO: ram sz
+
+define endian=big;
+define alignment=2;
+
+define space ram     type=ram_space      size=2  default;
+
+define space register type=register_space size=2;
+
+define register offset=0x00 size=4 [ 
+    R1_U
+    R1_S
+    R1_I
+    R1_N
+    R2_U
+    R2_S
+    R2_I
+    R3
+    R4
+    R5
+    R6
+    R7
+    R8
+    R9
+    R10
+    R11
+    R12
+    R13
+    R14_U
+    R14_S
+    R14_I
+    R14_N
+    R15_U
+    R15_S
+    R15_I
+
+	flags
+    SFLAGS_S
+    SFLAGS_I
+    SFLAGS_N
+
+    GP_U
+    GP_S
+    GP_I
+
+    IVTB
+    BRKE
+
+    BRK0
+    BRK1
+    BRK2
+    BRK3
+    BRK4
+    BRK5
+    BRK6
+    BRK7
+    BRK4COUNT
+    BRK5COUNT
+    BRK6COUNT
+    BRK7COUNT
+    BRK8MASK
+    BRK7MASK
+    BRK6DATA
+    BRK7DATA
+];
+
+
+#define register offset=0x100 size=4 [
+    #ctx
+#];
+
+#define context ctx
+    #addrExt         = (  0, 31) noflow
+#;
+
+define bitrange E=flags[8,1]
+                T=flags[7,1]
+				B=flags[6,1]
+				M1=flags[5,1]
+				M0=flags[4,1]
+				V=flags[3,1]
+                C=flags[2,1]
+                N=flags[1,1]
+                Z=flags[0,1]
+;
+
+define token opbyte (32)
+    op0_31 = (0, 31)
+    op0_23 = (0, 23)
+    op0_7  = (0, 7)
+    op12_23  = (12, 23)
+    op23  = (23, 23)
+    imm  = (7, 23)
+    imm8_23  = (8, 23)
+    imm7_22  = (7, 22)
+    addr  = (7, 31)
+    rs     = (24, 27)
+    rd     = (28, 31)
+    rt     = (8, 11)
+;
+
+define token opbyte16 (16)
+    op16_0_7   = (0, 7)
+    rd16       = (12, 15)
+    rt16       = (8, 11)
+    op16_0_16  = (0, 15)
+    op16_0_11  = (0, 11)
+;
+
+#TODO: check
+attach variables [ reg ] [
+    R1_U
+    R2_U
+    R3
+    R4
+    R5
+    R6
+    R7
+    R8
+    R9
+    R10
+    R11
+    R12
+    R13
+    R14_U
+    R15_U
+];
+
+define pcodeop stub;
+
+:abs.r rd, rs is rd & rs & op0_23=0b111111101101011111111111 {
+    rd = rs;
+    if(rs s>= 0) goto inst_next;
+    rd = -rs;
+}
+
+:acc.64.r rd, rs is rd & rs & op0_23=0b111111111110011101111111 {
+    stub();
+}
+
+:add.c.r rd, rs, rt is rd & rs & op12_23=0b111111110000 & rt & op0_7=0b11111111 {
+    stub();
+}
+
+:add.h rd, rs, "#"imm is rd & rs & imm & op0_6=0b1000001 {
+    stub();
+}
+
+:add.i rd, rs, "#"imm is rd & rs & imm & op0_6=0b1010001 {
+    stub();
+}
+
+#TODO: 16bit
+#TODO: all flags
+
+
+:add.r rd, rs, rt is rd & rs & op12_23=0b111111110000 & rt & op0_7=0b01111111 {
+    rd = rs + rt;
+}
+:add.r rd16, rt16 is rd16 & rt16 & op16_0_7=0b00010000 {
+    rd16 = rd16 + rt16;
+}
+
+#TODO: highimm
+:and.h rd, rs, "#"imm is rd & rs & imm & op0_6=0b1000111 {
+    rd = rs & imm;
+}
+:and.i rd, rs, "#"imm is rd & rs & imm & op0_6=0b1010111 {
+    rd = rs & imm;
+}
+
+:and.r rd, rs, rt is rd & rs & op12_23=0b111111110011 & rt & op0_7=0b01111111 {
+    rd = rs & rt;
+}
+:and.r rd16, rt16 is rd16 & rt16 & op16_0_7=0b01000000 {
+    rd16 = rd16 & rt16;
+}
+
+#TODO: branch
+
+define pcodeop brk;
+:brk is op0_31=0b11111111111111111111101011111111 {
+    brk();
+}
+:brk is op16_0_15=0b0010000000000000 {
+    brk();
+}
+
+:bsr.a addr is addr & op0_6=0b0110011 {
+    stub();
+}
+
+:bsr.p addr is addr & op0_6=0b0110111 {
+    stub();
+}
+
+:bsr.r rs is op28_31=0 & rs & op0_23=0b111111111110110101111111 {
+    stub();
+}
+:bsr.r rd16 is rd16 & op16_0_11=0b010100000000 {
+    stub();
+}
+
+#TODO: branch
+
+:cmp.16.h rs, "#"imm is op28_31=0b0100 & rs & imm8_23 & op0_7=0b01000101 {
+    stub();
+}
+:cmp.16.i rs, "#"imm is op28_31=0b0100 & rs & op23=0 & imm7_22 & op0_6=0b1010101 {
+    stub();
+}
+
+:cmp.16.r rs, rt is op28_31=0b0100 & rs & op12_23=0b111111110010 & rt & op0_7=0b01111111 {
+    stub();
+}
+
+:cmp.16c.h rs, "#"imm is op28_31=0b0100 & rs & imm8_23 & op0_7=0b01000101 {
+    stub();
+}
+:cmp.16c.i rs, "#"imm is op28_31=0b0100 & rs & op23=0 & imm7_22 & op0_6=0b1010101 {
+    stub();
+}
+:cmp.16c.r rs, rt is op28_31=0b0110 & rs & op12_23=0b111111110010 & rt & op0_7=0b01111111 {
+    stub();
+}
+
+:cmp.16x.h rs, "#"imm is op28_31=0b0101 & rs & imm8_23 & op0_7=0b01000101 {
+    stub();
+}
+:cmp.16x.i rs, "#"imm is op28_31=0b0101 & rs & op23=0 & imm7_22 & op0_6=0b1010101 {
+    stub();
+}
+
+:cmp.16xc.h rs, "#"imm is op28_31=0b0111 & rs & imm8_23 & op0_7=0b01000101 {
+    stub();
+}
+:cmp.16xc.i rs, "#"imm is op28_31=0b0111 & rs & op23=0 & imm7_22 & op0_6=0b1010101 {
+    stub();
+}
+
+:cmp.8.i rs, "#"imm is op28_31=0b0000 & rs & imm15_23=0b000000000 & imm7_14 & op0_7=0b1010101 {
+    stub();
+}
+:cmp.8.r rs, rt is op28_31=0b0000 & rs & imm12_23=0b111111110010 & rt & op0_7=0b01111111 {
+    stub();
+}
+
+:cmp.8c.i rs, "#"imm is op28_31=0b0010 & rs & imm15_23=0b000000000 & imm7_14 & op0_7=0b1010101 {
+    stub();
+}
+:cmp.8c.r rs, rt is op28_31=0b0010 & rs & imm12_23=0b111111110010 & rt & op0_7=0b01111111 {
+    stub();
+}
+
+:cmp.8x.i rs, "#"imm is op28_31=0b0001 & rs & imm15_23=0b000000000 & imm7_14 & op0_7=0b1010101 {
+    stub();
+}
+:cmp.8xc.i rs, "#"imm is op28_31=0b0011 & rs & imm15_23=0b000000000 & imm7_14 & op0_7=0b1010101 {
+    stub();
+}
+
+:cmp.c.h rd, "#"imm is op28_31=0b1010 & rs & imm & op0_6=0b1000101 {
+    stub();
+}
+:cmp.c.i rd, "#"imm is op28_31=0b1010 & rs & imm & op0_6=0b1010101 {
+    stub();
+}
+
+:cmp.c.r rs, rt is op28_31=0b1010 & rs & op12_13=0b111111110010 & rt & op0_7=0b01111111 {
+    stub();
+}
+
+:cmp.h rd, "#"imm is op28_31=0b1000 & rs & imm & op0_6=0b1000101 {
+    stub();
+}
+:cmp.i rd, "#"imm is op28_31=0b1000 & rs & imm & op0_6=0b1010101 {
+    stub();
+}
+
+#TODO: 16
+:cmp.r rs, rt is op28_31=0b1000 & rs & op12_13=0b111111110010 & rt & op0_7=0b01111111 {
+    stub();
+}
+#TODO: 16
+#
+:cmp.x.h rd, "#"imm is op28_31=0b1000 & rs & imm & op0_6=0b1000101 {
+    stub();
+}

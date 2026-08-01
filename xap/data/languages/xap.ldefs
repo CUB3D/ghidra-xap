@@ -14,7 +14,7 @@
     <compiler name="default" spec="skel.cspec" id="default"/>
   </language>
   
-     <language processor="XAP2"
+  <language processor="XAP2"
             endian="big"
             size="16"
             variant="default"
@@ -23,6 +23,18 @@
             processorspec="skel.pspec"
             id="XAP2:LE:16:default">
     <description>XAP2 processors</description>
+    <compiler name="default" spec="skel.cspec" id="default"/>
+  </language>
+
+  <language processor="XAP3"
+            endian="big"
+            size="16"
+            variant="default"
+            version="1.0"
+            slafile="xap2.sla"
+            processorspec="skel.pspec"
+            id="XAP3:LE:16:default">
+    <description>XAP3 processors</description>
     <compiler name="default" spec="skel.cspec" id="default"/>
   </language>
   
