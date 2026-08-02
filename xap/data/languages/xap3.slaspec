@@ -290,3 +290,145 @@ define pcodeop brk;
 :cmp.x.h rd, "#"imm is op28_31=0b1000 & rs & imm & op0_6=0b1000101 {
     stub();
 }
+
+#TODO: all 16 bit bwlow
+
+:cmp.x.i rd, "#"imm is op28_31=0b1001 & rs & imm & op0_6=0b1010101 {
+    stub();
+}
+:cmp.xc.h rd, "#"imm is op28_31=0b1011 & rs & imm & op0_6=0b1000101 {
+    stub();
+}
+
+:cmp.xc.i rd, "#"imm is op28_31=0b1011 & rs & imm & op0_6=0b1010101 {
+    stub();
+}
+
+:div.s.r rd, rs, rt is rd & rs & op12_13=0b111111111010 & rt & op0_7=0b01111111 {
+    stub();
+}
+:div.u.r rd, rs, rt is rd & rs & op12_13=0b111111111011 & rt & op0_7=0b01111111 {
+    stub();
+}
+
+#TODO: flip
+
+define pcodeop halt;
+:halt is op0_31=0b11111111111111111111101111111111 {
+    halt();
+}
+
+define pcodeop irqd;
+:irqd is op0_31=0b00000000111111111110010101111111 {
+    irqd();
+}
+
+define pcodeop irqe;
+:irqe is op0_31=0b00000000111111111110010001111111 {
+    irqe();
+}
+
+define pcodeop irqs;
+:irqs rd is rd & op0_27=0b0000111111111110011001111111 {
+    irqs(rd);
+}
+
+:ld.16s.i rd, rs, "@(" imm, ra ")" is rd & rs & imm & op0_6=0b1101111 {
+    stub();
+}
+
+#TODO: ld
+
+define pcodeop lic;
+:lic rd is rd & op0_27=0b1111111111111111100011111111 {
+    lic(rd);
+}
+
+#TODO: mov
+
+:movr2b rd, rs is rd & rs & op0_23=0b111111111110001001111111 {
+    stub();
+}
+:movr2s rd, rs is rd & rs & op0_23=0b111111111110000001111111 {
+    stub();
+}
+:movr2r rd, rs is rd & rs & op0_23=0b111111111110000101111111 {
+    stub();
+}
+:msbit.r rd, rs is rd & rs & op0_23=0b111111111110101001111111 {
+    stub();
+}
+
+:mult.16s.i rd, rs, "#"imm is rd & rs & op23=0 & imm7_22 & op0_6=0b1001101 {
+    stub();
+}
+
+:mult.16s.r rd, rs, rt is rd & rs & op12_13=0b111111110110 & rt & op0_7=0b01111111 {
+    stub();
+}
+
+:mult.16u.i rd, rs, "#"imm is rd & rs & op23=0 & imm7_22 & op0_6=0b1001111 {
+    stub();
+}
+
+:mult.16u.r rd, rs, rt is rd & rs & op12_13=0b11111110111 & rt & op0_7=0b01111111 {
+    stub();
+}
+
+:mult.i rd, rs, "#"imm is rd & rs & imm & op0_6=0b1011101 {
+    stub();
+}
+:mult.r rd, rs, rt is rd & rs & op12_13=0b111111111000 & rt & op0_7=0b01111111 {
+    stub();
+}
+#TODO: 16
+#TODO mult
+
+define pcodeop nop;
+:nop is op0_31=0b11111111111111111111111011111111 {
+    nop();
+}
+:nop is op16_0_15=0b0001000000000000 {
+    nop();
+}
+
+:or.h rd, rs, "#"imm is rd & rs & imm & op0_6=0b1001001 {
+    rd = rs & imm;
+}
+:or.i rd, rs, "#"imm is rd & rs & imm & op0_6=0b1011001 {
+    stub();
+}
+:or.r rd, rs, rt is rd & rs & op12_13=0b111111110100 & rt & op0_7=0b01111111 {
+    stub();
+}
+#TODO 16, pop
+
+define pcodeop print;
+:print rs is op28_31=0b0000 & rs & op0_27=0b111111111110111101111111 {
+    print(rd);
+}
+#TODO: push
+
+:rem rd, rs, rt is rd & rs & op12_13=0b111111111100 & rt & op0_7=0b01111111 {
+    stub();
+}
+:rem.u.r rd, rs, rt is rd & rs & op12_13=0b111111111101 & rt & op0_7=0b01111111 {
+    stub();
+}
+#TODO: rlinm
+
+:rtie is op0_31=0b11111111111111111111100111111111 {
+    stub();
+}
+#TODO
+:scc.r rd, rs, rt is rd & rs & op12_13=0b111100000101 & rt & op0_7=0b01111111 {
+    stub();
+}
+#TODO
+:scs.r rd, rs, rt is rd & rs & op12_13=0b111100000100 & rt & op0_7=0b01111111 {
+    stub();
+}
+#TODO: seq
+:sec.r rd, rs, rt is rd & rs & op12_13=0b111100000000 & rt & op0_7=0b01111111 {
+    stub();
+}
