@@ -131,6 +131,10 @@ define token opbyte (32)
     op0_11 = (0, 11)
     imm7_8 = (7, 8)
     imm1_2 = (1, 2)
+    op24_27=(24, 27)
+    op31=(31,31)
+    op20_27 = (20, 27)
+    op5_6 = (5, 6)
 ;
 
 define token opbyte16 (16)
@@ -148,6 +152,7 @@ define token opbyte16 (16)
     rs3a = (13, 15)
     shift16 = (4, 8)
     rd3e = (9, 11)
+    rs16 = (9, 12)
     op16_14_15 = (14, 15)
     op16_13_15 = (13, 15)
     op16_0_15 = (0, 15)
@@ -158,6 +163,13 @@ define token opbyte16 (16)
     rx3a = (13, 15)
     ra3a = (10, 12)
     rd2 = (8, 9)
+    imm16_0_7 = (0, 7)
+    imm16_8_9 = (8, 9)
+    imm16_4_7 = (4, 7)
+    imm16_4_8 = (4, 8)
+    imm16_0_3 = (0, 3)
+    rd3b = (13, 15)
+    ra3c = (10, 12)
 ;
 
 attach variables [rx3a ra3a] [
@@ -182,6 +194,28 @@ attach variables [rd3e] [
     R7
 ];
 
+attach variables [rd3b] [
+    R15
+    R1
+    R2
+    R3
+    R4
+    R5
+    R6
+    R7
+];
+
+attach variables [ra3c] [
+    R15
+    R1
+    R2
+    R3
+    R8
+    R9
+    R6
+    R7
+];
+
 attach variables [rd2] [
     R4
     R1
@@ -190,7 +224,7 @@ attach variables [rd2] [
 ];
 
 #TODO: check
-attach variables [ reg ] [
+attach variables [ reg rs16 ] [
     R1_U
     R2_U
     R3
@@ -261,7 +295,7 @@ macro flags_nz(dest) {
     rd16 = rd16 + rt16;
 }
 
-:add.i rd3a imm16_4_10 is rd3a & op16_11_12=0b00 & imm16_4_10 & op16_0_4=0b0010 {
+:add.i rx3a imm16_4_10 is rx3a & op16_11_12=0b00 & imm16_4_10 & op16_0_4=0b0010 {
     rd16 = rd16 + rt16;
 }
 
@@ -718,8 +752,8 @@ define pcodeop irqs;
     rd = *[ram]:4 ea;
     flags_nz(rd);
 }
-:ld.r rs3a, "@(" ra3a, rd2 ")" is rx3a & ra3a & rd2 & imm16_0_7=0b10000000 {
-    local ea:4 = rd3a + rd2;
+:ld.r rs3a, "@(" rx3a, rd2 ")" is rx3a & ra3a & rd2 & imm16_0_7=0b10000000 {
+    local ea:4 = rx3a + rd2;
     local tmp:4 = *[ram]:4 ea;
     rd3e = zext(tmp);
     flags_nz(rd3e);
