@@ -64,20 +64,11 @@ define register offset=0x00 size=4 [
     BRK5COUNT
     BRK6COUNT
     BRK7COUNT
-    BRK8MASK
+    BRK6MASK
     BRK7MASK
     BRK6DATA
     BRK7DATA
 ];
-
-
-#define register offset=0x100 size=4 [
-    #ctx
-#];
-
-#define context ctx
-    #addrExt         = (  0, 31) noflow
-#;
 
 define bitrange E=flags[8,1]
                 T=flags[7,1]
@@ -135,6 +126,15 @@ define token opbyte (32)
     op31=(31,31)
     op20_27 = (20, 27)
     op5_6 = (5, 6)
+    movp_rd = (1, 4)
+    movp_offset = (7, 31)
+    brs = (24, 27)
+    brd = (28, 31)
+    pop_rs = (17, 20)
+    imm22_30 = (22, 30)
+    imm7_16 = (7, 16)
+    imm17_20 = (17, 20)
+    ra = (12, 15)
 ;
 
 define token opbyte16 (16)
@@ -171,6 +171,39 @@ define token opbyte16 (16)
     rd3b = (13, 15)
     ra3c = (10, 12)
 ;
+
+define register offset=0x100 size=4 contextreg;
+
+define context contextreg
+  push_r14 = (0, 0)
+  push_r6 = (1, 1)
+  push_r7 = (2, 2)
+  push_r8 = (3, 3)
+  push_r9 = (4, 4)
+  push_r10 = (5, 5)
+  push_r11 = (6, 6)
+  push_r12 = (7, 7)
+  push_r13 = (8, 8)
+;
+
+attach variables [brs brd] [
+	BRK0
+    BRK1
+    BRK2
+    BRK3
+    BRK4
+    BRK5
+    BRK6
+    BRK7
+    BRK4COUNT
+    BRK5COUNT
+    BRK6COUNT
+    BRK7COUNT
+    BRK6MASK
+    BRK7MASK
+    BRK6DATA
+    BRK7DATA
+];
 
 attach variables [rx3a ra3a] [
     R8
@@ -224,7 +257,7 @@ attach variables [rd2] [
 ];
 
 #TODO: check
-attach variables [ reg rs16 ] [
+attach variables [ reg rs16 movp_rd pop_rs ra ] [
     R1_U
     R2_U
     R3
@@ -259,6 +292,15 @@ define pcodeop stub;
 h_imm: is imm {
 	local b15:4 = zext(imm:2);
 	local low:2 = imm:2 & 0x8000;
+	low = low s>> 15;
+	local tmp:4 = b15 | zext(low);
+	export *[const]:4 tmp;
+}
+
+# Take bits [31:15] from imm, repeat bit [15] into [14:0] of the imm
+h_imm8_23: is imm8_23 {
+	local b15:4 = zext(imm8_23:2);
+	local low:2 = imm8_23:2 & 0x8000;
 	low = low s>> 15;
 	local tmp:4 = b15 | zext(low);
 	export *[const]:4 tmp;
@@ -612,29 +654,41 @@ macro cmp(a, b) {
 }
 
 :div.s.r rd, rs, rt is rd & rs & op12_13=0b111111111010 & rt & op0_7=0b01111111 {
-    stub();
+    rd = rs s/ rt;
+    flags_nz(rd);
+    # Only in priv mode
+    V = (rt == 0) || ((rs == 0x80000000) && (rd==-1));
 }
 :div.u.r rd, rs, rt is rd & rs & op12_13=0b111111111011 & rt & op0_7=0b01111111 {
-    stub();
+    rd = rs s/ rt;
+    flags_nz(rd);
+    # Only in priv mode
+    C = (rt == 0);
 }
 
+define pcodeop flip_16b;
 :flip.16b.r rd, rs, rt, "#"sel is rd & rs & op18_23=0b000100 & sel & op12_15=0b0101 & rt & op0_7=0b01111111 {
-    stub();
-} 
+    rd = flip_16b(rs, rt, sel:1);
+}
+define pcodeop flip_16x; 
 :flip.16x.r rd, rs, rt, "#"sel is rd & rs & op18_23=0b000100 & sel & op12_15=0b0010 & rt & op0_7=0b01111111 {
-    stub();
+    rd = flip_16x(rs, rt, sel:1);
 } 
+define pcodeop flip_8x;
 :flip.8x.r rd, rs, rt, "#"sel is rd & rs & op18_23=0b000100 & sel & op12_15=0b0011 & rt & op0_7=0b01111111 {
-    stub();
-} 
+    rd = flip_8x(rs, rt, sel:1);
+}
+define pcodeop flip_b; 
 :flip.b.r rd, rs, rt, "#"sel is rd & rs & op18_23=0b000100 & sel & op12_15=0b0100 & rt & op0_7=0b01111111 {
-    stub();
-} 
+    rd = flip_b(rs, rt, sel:1);
+}
+define pcodeop flip;
 :flip.r rd, rs, rt, "#"sel is rd & rs & op18_23=0b000100 & sel & op12_15=0b0000 & rt & op0_7=0b01111111 {
-    stub();
-} 
+    rd = flip(rs, rt, sel:1);
+}
+define pcodeop flip_x; 
 :flip.x.r rd, rs, rt, "#"sel is rd & rs & op18_23=0b000100 & sel & op12_15=0b0001 & rt & op0_7=0b01111111 {
-    stub();
+    rd = flip_x(rs, rt, sel:1);
 } 
 
 define pcodeop halt;
@@ -759,17 +813,105 @@ define pcodeop irqs;
     flags_nz(rd3e);
 }
 
-:ldm is op0_6=0b0111001 {
+ldm_reglist15: R14 is op31=1 {}
+ldm_reglist15: "" is op31=0 {}
+
+ldm_reglist14: R14,ldm_reglist15 is op30=1 & ldm_reglist15 {}
+ldm_reglist14: R14 is op30=1 & op31_31=0 {}
+ldm_reglist14: ldm_reglist15 is op30=0 {}
+
+ldm_reglist13: R13,ldm_reglist14 is op29=1 & ldm_reglist14 {}
+ldm_reglist13: R13 is op29=1 & op30_31=0 {}
+ldm_reglist13: ldm_reglist14 is op29=0 {}
+
+ldm_reglist12: R12,ldm_reglist13 is op28=1 & ldm_reglist13 {}
+ldm_reglist12: R12 is op28=1 & op29_31=0 {}
+ldm_reglist12: ldm_reglist13 is op28=0 {}
+
+ldm_reglist11: R11,ldm_reglist12 is op27=1 & ldm_reglist12 {}
+ldm_reglist11: R11 is op27=1 & op28_31=0 {}
+ldm_reglist11: ldm_reglist12 is op27=0 {}
+
+ldm_reglist10: R10,ldm_reglist11 is op26=1 & ldm_reglist11 {}
+ldm_reglist10: R10 is op26=1 & op27_31=0 {}
+ldm_reglist10: ldm_reglist11 is op26=0 {}
+
+ldm_reglist9: R9,ldm_reglist10 is op25=1 & ldm_reglist10 {}
+ldm_reglist9: R9 is op25=1 & op26_31=0 {}
+ldm_reglist9: ldm_reglist10 is op25=0 {}
+
+ldm_reglist8: R8,ldm_reglist9 is op24=1 & ldm_reglist9 {}
+ldm_reglist8: R8 is op24=1 & op25_31=0 {}
+ldm_reglist8: ldm_reglist9 is op24=0 {}
+
+ldm_reglist7: R7,ldm_reglist8 is op23=1 & ldm_reglist8 {}
+ldm_reglist7: R7 is op23=1 & op24_31=0 {}
+ldm_reglist7: ldm_reglist8 is op23=0 {}
+
+ldm_reglist6: R6,ldm_reglist7 is op22=1 & ldm_reglist7 {}
+ldm_reglist6: R6 is op22=1 & op23_31=0 {}
+ldm_reglist6: ldm_reglist7 is op22=0 {}
+
+ldm_reglist5: R5,ldm_reglist6 is op21=1 & ldm_reglist6 {}
+ldm_reglist5: R5 is op21=1 & op22_31=0 {}
+ldm_reglist5: ldm_reglist6 is op21=0 {}
+
+ldm_reglist4: R4,ldm_reglist5 is op20=1 & ldm_reglist5 {}
+ldm_reglist4: R4 is op20=1 & op21_31=0 {}
+ldm_reglist4: ldm_reglist5 is op20=0 {}
+
+ldm_reglist3: R3,ldm_reglist4 is op19=1 & ldm_reglist4 {}
+ldm_reglist3: R3 is op19=1 & op20_31=0 {}
+ldm_reglist3: ldm_reglist4 is op19=0 {}
+
+ldm_reglist2: R2,ldm_reglist3 is op18=1 & ldm_reglist3 {}
+ldm_reglist2: R2 is op18=1 & op19_31=0 {}
+ldm_reglist2: ldm_reglist3 is op18=0 {}
+
+ldm_reglist1: R1,ldm_reglist1 is op17=1 & ldm_reglist2 {}
+ldm_reglist1: R1 is op17=1 & op18_31=0 {}
+ldm_reglist1: ldm_reglist2 is op17=0 {}
+
+ldm_reglist0: R0,ldm_reglist1 is op16=1 & ldm_reglist1 {}
+ldm_reglist0: R0 is op16=1 & op17_31=0 {}
+ldm_reglist0: ldm_reglist1 is op16=0 {}
+
+ldm_reglist: "{" ldm_reglist0 "}" {}
+
+:ldm ldm_reglist, "@(" lowbit ", " ra ")" is ldm_reglist & ra & lowbit & op0_6=0b0111001 {
 	stub();
 }
-:ldm is op16_13_15=0b100 & op16_0_3=0b1110 {
+
+ldm_reglist16_4: R5 is op16_8=1 {}
+ldm_reglist16_4: "" is op16_8=0 {}
+
+ldm_reglist16_3: R4,ldm_reglist16_4 is op16_7=1 & ldm_reglist16_4 {}
+ldm_reglist16_3: R4 is op16_7=1 & op16_7_9=0 {}
+ldm_reglist16_3: ldm_reglist16_4 is op16_7=0 {}
+
+ldm_reglist16_2: R3,ldm_reglist16_3 is op16_6=1 & ldm_reglist16_3 {}
+ldm_reglist16_2: R3 is op16_6=1 & op16_7_9=0 {}
+ldm_reglist16_2: ldm_reglist16_3 is op16_6=0 {}
+
+ldm_reglist16_1: R2,ldm_reglist16_2 is op16_5=1 & ldm_reglist16_2 {}
+ldm_reglist16_1: R2 is op16_5=1 & op16_6_9=0 {}
+ldm_reglist16_1: ldm_reglist16_2 is op16_5=0 {}
+
+ldm_reglist16_0: R1,ldm_reglist16_1 is op16_4=1 & ldm_reglist16_1 {}
+ldm_reglist16_0: R1 is op16_4=1 & op16_5_9=0 {}
+ldm_reglist16_0: ldm_reglist16_1 is op16_4=0 {}
+
+ldm_reglist16: "{" ldm_reglist16_0 "}" {
+
+:ldm ldm_reglist16, ra16 is op16_13_15=0b100 & ra16 & ldm_reglist16 & op16_0_3=0b1110 {
     stub();
 }
 
-:ldm is op0_11=0b111110111001 {
+:ldm.u ldm_reglist, "@(0, " ra ")" is ldm_reglist & ra & op0_11=0b111110111001 {
 	stub();
 }
-:ldm is op0_6=0b0111011 {
+
+:ldm.x ldm_reglist, "@("imm7_11", " ra ")" is ldm_reglist & ra & imm7_11 & op0_6=0b0111011 {
 	stub();
 }
 
@@ -800,8 +942,8 @@ splitrd: is imm7_8 & imm1_2 {
 }
 #TODO:16
 
-:movb2 rd, rbs is rd & rbs & op0_23=0b111111111110001101111111 {
-    rd = rbs;
+:movb2 rd, rbs is rd & brs & op0_23=0b111111111110001101111111 {
+    rd = brs;
 }
 :movm is op0_6=0b0101001 {
     stub();
@@ -811,12 +953,12 @@ splitrd: is imm7_8 & imm1_2 {
     stub();
 }
 
-:movr2b rbd, rs is rbd & rs & op0_23=0b111111111110001001111111 {
-    rbd = rs;
+:movr2b rbd, rs is brd & rs & op0_23=0b111111111110001001111111 {
+    brd = rs;
 }
-:movr2s rsd, rs is rsd & rs & op0_23=0b111111111110000001111111 {
-    rsd = rs;
-}
+#:movr2s rsd, rs is srd & rs & op0_23=0b111111111110000001111111 {
+#    srd = rs;
+#}
 :movs2r rd, rss is rd & rs & op0_23=0b111111111110000101111111 {
     rd = rss;
 }
@@ -878,11 +1020,80 @@ define pcodeop nop;
     flags_nz(rd);
 }
 #TODO 16, pop
-:pop is op31=0 & op0_6=0b0011111 {
-	stub();
+
+#TODO: push
+reglist: "{}" is imm22_30=0 {}
+reglist: "{" r14 "}" is imm22_30=1 [push_r14=1;] {}
+reglist: "{" r6 "}" is imm22_30=2 [push_r6=1;] {}
+reglist: "{" r6, r14 "}" is imm22_30=3 [push_r6=1; push_r14=1; ] {}
+reglist: "{" r6, r7 "}" is imm22_30=4 [push_r6=1; push_r7=1;] {}
+reglist: "{" r6, r7, r14 "}" is imm22_30=5 [push_r6=1; push_r7=1; push_r14=1;] {}
+reglist: "{" r6, r7, r8"}" is imm22_30=6 [push_r6=1; push_r7=1; push_r8=1;] {}
+reglist: "{" r6, r7, r8, r14 "}" is imm22_30=7 [push_r6=1; push_r7=1; push_r8=1; push_r14=1;] {}
+reglist: "{" r6, r7, r8, r9 "}" is imm22_30=8 [push_r6=1; push_r7=1; push_r8=1; push_r9=1;] {}
+reglist: "{" r6, r7, r8, r9, r14 "}" is imm22_30=9 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r14=1;] {}
+reglist: "{" r6, r7, r8, r9, r10 "}" is imm22_30=10 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1;] {}
+reglist: "{" r6, r7, r8, r9, r10, r14 "}" is imm22_30=11 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r14=1;] {}
+reglist: "{" r6, r7, r8, r9, r10, r11 "}" is imm22_30=12 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1;] {}
+reglist: "{" r6, r7, r8, r9, r10, r11, r14 "}" is imm22_30=13 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1; push_r14=1;] {}
+reglist: "{" r6, r7, r8, r9, r10, r11, r12, r14 "}" is imm22_30=14 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1; push_r12=1; push_r14=1;] {}
+reglist: "{" r6, r7, r8, r9, r10, r11, r12, r13 r14 "}" is imm22_30=15 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1; push_r12=1; push_r13=1; push_r14=1;] {}
+
+macro pop(r) {
+	r = *[ram]:4 sp;
+	sp = sp + 4; 
+}
+
+:pop "#"imm17_20, reglist, "#"imm7_16 is op31=1 & reglist & op21=1 & imm17_20 & imm7_16 & op0_6=0b0011111 {
+	r1 = imm17_20;
+	build reglist;
+}
+
+:pop pop_rs, reglist, "#"imm7_16 is op31=0 & reglist & op21=0 & pop_rs & imm7_16 & op0_6=0b0011111 {
+	r1 = pop_rs;
+	
+	build reglist;
+	#TODO: order?
+	
+	if(push_r6 == 0) goto <nor6>;
+	 pop(r6); 
+	<nor6>
+	
+	if(push_r7 == 0) goto <nor7>;
+	 pop(r7); 
+	<nor7>
+	
+	if(push_r8 == 0) goto <nor8>;
+	 pop(r8); 
+	<nor8>
+	
+	if(push_r9 == 0) goto <nor9>;
+	 pop(r9); 
+	<nor9>
+	
+	if(push_r10 == 0) goto <nor10>;
+	 pop(r10); 
+	<nor10>
+	
+	if(push_r11 == 0) goto <nor11>;
+	 pop(r11); 
+	<nor11>
+	
+	if(push_r12 == 0) goto <nor12>;
+	 pop(r12); 
+	<nor12>
+	
+	if(push_r13 == 0) goto <nor13>;
+	 pop(r13); 
+	<nor13>
+	
+	if(push_r14 == 0) goto <nor14>;
+	 pop(r14);
+	<nor14>
+
 }
 #TODO:16
-:pop is op31=1 & op0_6=0b0011111 {
+:pop.ret is op31=1 & op0_6=0b0011111 {
 	stub();
 }
 #TODO:16
@@ -1112,19 +1323,19 @@ define pcodeop rtie;
 :sub.c.r rd, rs, rt is rd & rs & op12_23=0b111111110001 & rt & op0_7=0b11111111 {
     stub();
 }
-:sub.r rd, rs, rt is rd & rs & op12_23=0b111111110001 & rt & op0_7=0b01111111 {
-    rd = rs - rt;
-    flags_sub();
-}
-#TODO: 16
-:sub.x.h rd, rs, "#"h_imm7_23 is rd & rs & h_imm7_23 & op0_6=0b1000011 {
-    rd = h_imm7_23 - rs;
-    flags_sub();
-}
-:sub.x.i rd, rs, "#"imm7_23 is rd & rs & imm7_23 & op0_6=0b1010011 {
-    rd = imm - rs;
-    flags_sub();
-}
+#:sub.r rd, rs, rt is rd & rs & op12_23=0b111111110001 & rt & op0_7=0b01111111 {
+#    rd = rs - rt;
+#    flags_sub();
+#}
+##TODO: 16
+#:sub.x.h rd, rs, "#"h_imm7_23 is rd & rs & h_imm7_23 & op0_6=0b1000011 {
+#    rd = h_imm7_23 - rs;
+#    flags_sub();
+#}
+#:sub.x.i rd, rs, "#"imm7_23 is rd & rs & imm7_23 & op0_6=0b1010011 {
+#    rd = imm - rs;
+#    flags_sub();
+#}
 
 #TODO ^
 
