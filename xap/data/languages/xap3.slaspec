@@ -651,6 +651,7 @@ macro cmp(a, b) {
     V = sborrow(a, b);
 }
 
+#TODO: check these flags make sense
 :cmp.16.h rs, "#"h_imm8_23 is op28_31=0b0100 & rs & h_imm8_23 & op0_7=0b01000101 {
     cmp(rs(2), h_imm8_23(2));
 }
@@ -669,12 +670,17 @@ macro cmp(a, b) {
     V = sborrow(rs, h_imm8_23+c);
 }
 
-#TODO: all flags under this line
-:cmp.16c.i rs, "#"imm is op28_31=0b0100 & rs & op23=0 & imm7_22 & op0_6=0b1010101 {
-    stub();
+:cmp.16c.i rs, "#"imm7_22 is op28_31=0b0100 & rs & op23=0 & imm7_22 & op0_6=0b1010101 {
+    Z = (imm7_22:2 + C == rs:2);
+    N = rs s< (imm7_22+C);
+    C = rs < (imm7_22 + C);
+    V = sborrow(rs, imm7_22+c);
 }
 :cmp.16c.r rs, rt is op28_31=0b0110 & rs & op12_23=0b111111110010 & rt & op0_7=0b01111111 {
-    stub();
+    Z = (rt:2 + C == rs:2);
+    N = rs s< (rt+C);
+    C = rs < (rt + C);
+    V = sborrow(rs, rt+c);
 }
 
 :cmp.16x.h rs, "#"h_imm8_23 is op28_31=0b0101 & rs & h_imm8_23 & op0_7=0b01000101 {
@@ -685,10 +691,16 @@ macro cmp(a, b) {
 }
 
 :cmp.16xc.h rs, "#"h_imm8_23 is op28_31=0b0111 & rs & h_imm8_23 & op0_7=0b01000101 {
-    stub();
+    Z = (h_imm8_23 + C == rs(2));
+    N = (h_imm8_23+C) s< rs;
+    C = (h_imm8_23 + C) < rs;
+    V = sborrow(h_imm8_23+c, rs);
 }
 :cmp.16xc.i rs, "#"imm is op28_31=0b0111 & rs & op23=0 & imm7_22 & op0_6=0b1010101 {
-    stub();
+    Z = (imm + C == rs:2);
+    N = (imm+C) s< rs;
+    C = (imm + C) < rs;
+    V = sborrow(imm+c, rs);
 }
 
 :cmp.8.i rs, "#"imm7_14 is op28_31=0b0000 & rs & imm15_23=0b000000000 & imm7_14 & op0_7=0b1010101 {
@@ -699,12 +711,19 @@ macro cmp(a, b) {
 }
 
 :cmp.8c.i rs, "#"imm7_14 is op28_31=0b0010 & rs & imm15_23=0b000000000 & imm7_14 & op0_7=0b1010101 {
-    stub();
+    Z = (imm7_14:1 + C == rs:1);
+    N = rs s< (imm7_14+C);
+    C = rs < (imm7_14 + C);
+    V = sborrow(rs, imm7_14+c);
 }
 :cmp.8c.r rs, rt is op28_31=0b0010 & rs & imm12_23=0b111111110010 & rt & op0_7=0b01111111 {
-    stub();
+    Z = (rt:1 + C == rs:1);
+    N = rs s< (rt+C);
+    C = rs < (rt + C);
+    V = sborrow(rs, rt+c);
 }
 
+#TODO: all cmp flags under this line
 :cmp.8x.i rs, "#"imm7_14 is op28_31=0b0001 & rs & imm15_23=0b000000000 & imm7_14 & op0_7=0b1010101 {
     cmp(h_imm8_23:1, rs:1);
 }
@@ -769,6 +788,7 @@ macro cmp(a, b) {
     C = (rt == 0);
 }
 
+#TODO: all flags under this line
 define pcodeop flip_16b;
 :flip.16b.r rd, rs, rt, "#"sel is rd & rs & op18_23=0b000100 & sel & op12_15=0b0101 & rt & op0_7=0b01111111 {
     rd = flip_16b(rs, rt, sel:1);
