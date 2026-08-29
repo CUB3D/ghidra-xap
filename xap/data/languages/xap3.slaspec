@@ -1215,21 +1215,21 @@ define pcodeop nop;
 
 #TODO: push
 reglist: "{}" is imm22_30=0 {}
-#reglist: "{" R14_U "}" is imm22_30=1 [push_r14=1;] {}
-#reglist: "{" R6 "}" is imm22_30=2 [push_r6=1;] {}
-#reglist: "{" R6, R14_U "}" is imm22_30=3 [push_r6=1; push_r14=1; ] {}
-#reglist: "{" R6, R7 "}" is imm22_30=4 [push_r6=1; push_r7=1;] {}
-#reglist: "{" R6, R7, R14_U "}" is imm22_30=5 [push_r6=1; push_r7=1; push_r14=1;] {}
-#reglist: "{" R6, R7, R8"}" is imm22_30=6 [push_r6=1; push_r7=1; push_r8=1;] {}
-#reglist: "{" R6, R7, R8, R14_U "}" is imm22_30=7 [push_r6=1; push_r7=1; push_r8=1; push_r14=1;] {}
-#reglist: "{" R6, R7, R8, R9 "}" is imm22_30=8 [push_r6=1; push_r7=1; push_r8=1; push_r9=1;] {}
-#reglist: "{" R6, R7, R8, R9, R14_U "}" is imm22_30=9 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r14=1;] {}
-#reglist: "{" R6, R7, R8, R9, R10 "}" is imm22_30=10 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1;] {}
-#reglist: "{" R6, R7, R8, R9, R10, R14_U "}" is imm22_30=11 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r14=1;] {}
-#reglist: "{" R6, R7, R8, R9, R10, R11 "}" is imm22_30=12 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1;] {}
-#reglist: "{" R6, R7, R8, R9, R10, R11, R14_U "}" is imm22_30=13 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1; push_r14=1;] {}
-#reglist: "{" R6, R7, R8, R9, R10, R11, R12, R14_U "}" is imm22_30=14 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1; push_r12=1; push_r14=1;] {}
-#reglist: "{" R6, R7, R8, R9, R10, R11, R12, R13 R14_U "}" is imm22_30=15 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1; push_r12=1; push_r13=1; push_r14=1;] {}
+reglist: "{" R14_U "}" is imm22_30=1 & R14_U [push_r14=1;] {}
+reglist: "{" R6 "}" is imm22_30=2 & R6 [push_r6=1;] {}
+reglist: "{" R6, R14_U "}" is imm22_30=3 & R6 & R14_U [push_r6=1; push_r14=1; ] {}
+reglist: "{" R6, R7 "}" is imm22_30=4 & R6 & R7 [push_r6=1; push_r7=1;] {}
+reglist: "{" R6, R7, R14_U "}" is imm22_30=5 & R6 & R7 & R14_U [push_r6=1; push_r7=1; push_r14=1;] {}
+reglist: "{" R6, R7, R8"}" is imm22_30=6 & R6 & R7 & R8 [push_r6=1; push_r7=1; push_r8=1;] {}
+reglist: "{" R6, R7, R8, R14_U "}" is imm22_30=7 & R6 & R7 & R8 & R14_U [push_r6=1; push_r7=1; push_r8=1; push_r14=1;] {}
+reglist: "{" R6, R7, R8, R9 "}" is imm22_30=8 & R6 & R7 & R8 & R9 [push_r6=1; push_r7=1; push_r8=1; push_r9=1;] {}
+reglist: "{" R6, R7, R8, R9, R14_U "}" is imm22_30=9 & R6 & R7 & R8 & R9 & R14_U [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r14=1;] {}
+reglist: "{" R6, R7, R8, R9, R10 "}" is imm22_30=10 & R6 & R7 & R8 & R9 & R10 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1;] {}
+reglist: "{" R6, R7, R8, R9, R10, R14_U "}" is imm22_30=11 & R6 & R7 & R8 & R9 & R10 & R14_U [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r14=1;] {}
+reglist: "{" R6, R7, R8, R9, R10, R11 "}" is imm22_30=12 & R6 & R7 & R8 & R9 & R10 & R11 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1;] {}
+reglist: "{" R6, R7, R8, R9, R10, R11, R14_U "}" is imm22_30=13 & R6 & R7 & R8 & R9 & R10 & R11 & R14_U [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1; push_r14=1;] {}
+reglist: "{" R6, R7, R8, R9, R10, R11, R12, R14_U "}" is imm22_30=14 & R6 & R7 & R8 & R9 & R10 & R11 & R12 & R14_U [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1; push_r12=1; push_r14=1;] {}
+reglist: "{" R6, R7, R8, R9, R10, R11, R12, R13 R14_U "}" is imm22_30=15 & R6 & R7 & R8 & R9 & R10 & R11 & R12 & R13 & R14_U [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1; push_r12=1; push_r13=1; push_r14=1;] {}
 
 #TODO: reg, also cspec
 macro pop(r) {
@@ -1249,7 +1249,7 @@ macro pop(r) {
 	#TODO
 #	R1_U = pop_rs;
 	
-#	build reglist;
+	build reglist;
 	#TODO: order?
 	
 	if(push_r6:1 == 0) goto <nor6>;
@@ -1341,9 +1341,9 @@ define pcodeop print;
 :shiftr.u.i rd3e, "#"shift16 is op16_12_15=0b0000 & rd3e & shift16 & op16_0_3=0b1110{
     rd3e = rd3e >> shift16;
 }
-#:shiftl.i rd3e, rd3e, "#"shift16 is op16_12_15=0b0010 & rd3e & shift16 & op0_3=0b1110 {
-#    rd3e = rd3e << shift16;
-#}
+:shiftl.i rd3e, "#"shift16 is op16_12_15=0b0010 & rd3e & shift16 & op16_0_3=0b1110 {
+    rd3e = rd3e << shift16;
+}
 #TODO
 #:and.i rd3e, rd3e, "#"i is op16_12_15=0b0100 & rd3e & shift16 & op0_3=0b1110 [ i = 2**(shift16 + 1) - 1;] {
 #    stub();
@@ -1379,12 +1379,12 @@ define pcodeop rtie;
     rd = (zext(Z) * rs) + (zext(~C) * imm7_19);
 }
 
-#:seq.i rd16, r0, "#"1 is rd16 & op16_0_11=0b100000000000 {
-#	rd = (zext(Z) * R0) + (zext(~C) * 1);
-#}
-#:seq.i rd16, r0, "#-"1 is rd16 & op16_0_11=0b101000000000 {
-#	rd = (zext(Z) * R0) + (zext(~C) * 0xFFFFFFFF);
-#}
+:seq.i rd16, "r0", "#"1 is rd16 & op16_0_11=0b100000000000 {
+	rd16 = (zext(Z) * 0) + (zext(~C) * 1);
+}
+:seq.i rd16, "r0", "#-"1 is rd16 & op16_0_11=0b101000000000 {
+	rd16 = (zext(Z) * 0) + (zext(~C) * 0xFFFFFFFF);
+}
 
 :seq.r rd, rs, rt is rd & rs & op12_23=0b111100000000 & rt & op0_7=0b01111111 {
     rd = (zext(Z) * rs) + (zext(~C) * rt);
@@ -1398,12 +1398,9 @@ define pcodeop rtie;
     local cmp:1 = N == V;
     rd = (zext(cmp) * rs) + (zext(~cmp) * rt);
 }
-#:sge.u.i rd, rs, "#"imm7_19 is rd & rs & op20_23=0b0101 & imm7_19 & op0_7=0b0101111 {
-#    rd = (zext(~C) * rs) + (zext(C) * imm7_19);
-#}
-#:sge.u.r rd, rs, rt is rd & rs & op12_23=0b111100000101 & rt & op0_7=0b01111111 {
-#    rd = (zext(~C) * rs) + (zext(C) * rt);
-#}
+
+# sge.u.i is an alias for scc.i
+# sge.u.r is an alias for scc.r
 
 :sgt.s.i rd, rs, "#"imm7_19 is rd & rs & op20_23=0b1011 & imm7_19 & op0_7=0b0101111 {
     local cmp:1 = (N == V) && (~Z);
@@ -1429,13 +1426,13 @@ define pcodeop rtie;
 :shiftl.64.r rd64, rt is rd64 & op12_27=0b0111000000000000 & rt & op0_7=0b011111111 {
     rd64 = rd64 << (rt & 0b111111);
 }
-#:shiftl.r rd, rs, rt is rd & op12_22=0b111111101010 & rt & op0_7=0b01111111 {
-#    rd = rs << (rt & 0b111111);
-#    
-#    Z = rd == 0;
-#    C = (rd & 1) == 1;
-#    N = ((rd >> 31) & 1) == 1;
-#}
+:shiftl.r rd, rs, rt is rd & rs & op12_23=0b111111101010 & rt & op0_7=0b01111111 {
+    rd = rs << (rt & 0b111111);
+    
+    Z = rd == 0;
+    C = (rd & 1) == 1;
+    N = ((rd >> 31) & 1) == 1;
+}
 
 :shiftr.64s.i rd64, "#"imm12_17 is rd64 & op18_27=0b0100000000 & imm12_17 & op0_11=0b000001111111 {
     rd64 = rd64 s>> imm12_17;
@@ -1443,19 +1440,19 @@ define pcodeop rtie;
 :shiftr.64s.r rd64, rt is rd64 & op12_27=0b0110000000000000 & rt & op0_7=0b01111111 {
     rd64 = rd64 s>> rt;
 }
-#:shiftr.s.r rd, rs, rt is rd & op12_22=0b111111101000 & rt & op0_7=0b01111111 {
-#    rd = rs s>> (rt & 0b11111);
-#    Z = rd == 0;
-#    N = ((rd >> 31) & 1) == 1;
-#    C = (rd & 0) == 1;
-#}
-#
-#:shift.u.r rd, rs, rt is rd & op12_22=0b111111101001 & rt & op0_7=0b01111111 {
-#    rd = rs >> (rt & 0b11111);
-#    Z = rd == 0;
-#    N = ((rd >> 31) & 1) == 1;
-#    C = (rd & 0) == 1;
-#}
+:shiftr.s.r rd, rs, rt is rd & rs & op12_23=0b111111101000 & rt & op0_7=0b01111111 {
+    rd = rs s>> (rt & 0b11111);
+    Z = rd == 0;
+    N = ((rd >> 31) & 1) == 1;
+    C = (rd & 0) == 1;
+}
+
+:shiftr.u.r rd, rs, rt is rd & rs & op12_23=0b111111101001 & rt & op0_7=0b01111111 {
+    rd = rs >> (rt & 0b11111);
+    Z = rd == 0;
+    N = ((rd >> 31) & 1) == 1;
+    C = (rd & 0) == 1;
+}
 
 
 define pcodeop sif;
@@ -1504,10 +1501,7 @@ define pcodeop sleepsif;
 	local cond:1 = (C == 1);
     rd = (zext(cond) * rs) + (zext(!cond) * imm7_19);
 }
-#:slt.u.r rd, rs, rt is rd & rs & op12_23=0b111100000100 & rt & op0_7=0b01111111 {
-#    local cond:1 = (C == 1);
-#    rd = (zext(cond) * rs) + (zext(!cond) * rt);
-#}
+# slt.u.r is an alias for src.r
 
 :smi.i rd, rs, "#"imm7_19 is rd & rs & op20_23=0b0010 & imm7_19 & op0_6=0b0101111 {
 	local cond:1 = (N == 1);
@@ -1521,14 +1515,14 @@ define pcodeop sleepsif;
 	local cond:1 = (Z == 0);
     rd = (zext(cond) * rs) + (zext(!cond) * imm7_19);
 }
-#:sne.i rd16, r0, "#"1 is rd16 & op16_0_11=0b100100000000 {
-#	local cond:1 = (Z == 0);
-#    rd = (zext(cond) * R0) + (zext(!cond) * 1);
-#}
-#:sne.i rd16, r0, "#-"1 is rd16 & op16_0_11=0b101100000000 {
-#	local cond:1 = (Z == 0);
-#    rd = (zext(cond) * R0) + (zext(!cond) * 0xFFFFFFFF);
-#}
+:sne.i rd16, "r0", "#"1 is rd16 & op16_0_11=0b100100000000 {
+	local cond:1 = (Z == 0);
+    rd16 = (zext(cond) * 0) + (zext(!cond) * 1);
+}
+:sne.i rd16, "r0", "#-"1 is rd16 & op16_0_11=0b101100000000 {
+	local cond:1 = (Z == 0);
+    rd16 = (zext(cond) * 0) + (zext(!cond) * 0xFFFFFFFF);
+}
 
 :sne.r rd, rs, rt is rd & rs & op12_23=0b111100000001 & rt & op0_7=0b01111111 {
     local cond:1 = (Z == 0);
@@ -1545,26 +1539,27 @@ define pcodeop sleepsif;
 }
 
 ##TODO: all imm signsw
-#:st.16.i rd, "@(" imm "," rs ")" is rd & rs & imm & op0_6=0b1101011 {
-#	local ea:4 = rs + imm;
-#	*[ram]:2 ea = rd:2;
-#}
+:st.16.i rd, "@(" imm "," rs ")" is rd & rs & imm & op0_6=0b1101011 {
+	local ea:4 = rs + imm;
+	*[ram]:2 ea = rd:2;
+}
 #:st.16.i rs3d, "@(" imm16_4_7, ra3c ")" is rs3d & ra3c & op16_8_9=0b11 & imm16_4_7 & op16_0_3=0b0100 {
 #	local ea:4 = ra3c + imm16_4_7;
 #	*[ram]:2 ea = rs3d:2;
 #}
-#
+
 :st.16.r rd, "@(" rt, rs ")" is rd & rs & op12_23=0b111111100101 & rt & op0_7=0b01111111 {
 	#TODO: check the scaling on ld and stores everywhere
     local ea:4 = (rs<<1) + rt;
 	*[ram]:2 ea = rd:2;
+}#
+#TODO: regs
+:st.16.r ra3a, "@(" ra3c, rd2 ")" is ra3a & ra3c & rd2 & op16_0_7=0b11010000 {
+	local ea:4 = (rd2<<1) + ra3c;
+	*[ram]:2 ea = ra3a:2;
 }
-#:st.16.r ra3c, "@(" rx3a, rd2 ")" is ra3a & ra3c & rd2 & op16_0_7=0b11010000 {
-#	local ea:4 = (rd2<<1) + rx3a;
-#	*[ram]:2 ea = ra3c:2;
-#}
-#
-#
+
+
 :st.8.i rd, "@(" imm "," rs ")" is rd & rs & imm & op0_6=0b1101101 {
 	local ea:4 = rs + imm;
 	*[ram]:1 ea = rd:1;
@@ -1575,28 +1570,28 @@ define pcodeop sleepsif;
 #}
 
 
-#:st.8.r rd, "@(" rt, rs ")" is rd & rs & op12_23=0b111111100110 & rt & op0_7=0b01111111 {
-#    local ea:4 = rs + rt;
-#	*[ram]:1 ea = rd:1;
-#}
+:st.8.r rd, "@(" rt, rs ")" is rd & rs & op12_23=0b111111100110 & rt & op0_7=0b01111111 {
+    local ea:4 = rs + rt;
+	*[ram]:1 ea = rd:1;
+}
 #:st.8.r ra3c, "@(" rx3a, rd2 ")" is ra3a & ra3c & rd2 & op16_0_7=0b11100000 {
 #	local ea:4 = rx3a + rd2;
 #	*[ram]:2 ea = ra3c:2;
 #}
 #
-#:st.i rd, "@(" imm "," rs ")" is rd & rs & imm & op0_6=0b1101001 {
-#    local ea:4 = rs + imm;
-#	*[ram]:4 ea = rd;
-#}
+:st.i rd, "@(" imm "," rs ")" is rd & rs & imm & op0_6=0b1101001 {
+    local ea:4 = rs + imm;
+	*[ram]:4 ea = rd;
+}
 #:st.i rs3d, "@(" imm16_4_8, ra3c ")" is rs3d & rs16 & imm16_4_8 & op16_0_3=0b1000 {
 #	local ea:4 = ra3c + imm16_4_8;
 #	*[ram]:4 ea = rs3d;
 #}
 #
-#:st.r rd, "@(" rs, rt ")" is rd & rs & op12_23=0b111111100100 & rt & op0_7=0b01111111 {
-#    local ea:4 = (rs<<2) + rt;
-#	*[ram]:4 ea = rd;
-#}
+:st.r rd, "@(" rs, rt ")" is rd & rs & op12_23=0b111111100100 & rt & op0_7=0b01111111 {
+    local ea:4 = (rs<<2) + rt;
+	*[ram]:4 ea = rd;
+}
 #:st.r ra3c, "@(" rx3a, rd2 ")" is ra3a & ra3c & rd2 & op16_0_7=0b11000000 {
 #	local ea:4 = (rx3a<<2) + rd2;
 #	*[ram]:4 ea = ra3c;
@@ -1620,7 +1615,7 @@ define pcodeop sleepsif;
     stub();
 }
 :sub.r rd, rs, rt is rd & rs & op12_23=0b111111110001 & rt & op0_7=0b01111111 {
-#    rd = rs - rt;
+    rd = rs - rt;
 #    flags_sub();
 	stub();
 }
@@ -1632,10 +1627,10 @@ define pcodeop sleepsif;
 #    rd = h_imm7_23 - rs;
 #    flags_sub();
 #}
-#:sub.x.i rd, rs, "#"imm7_23 is rd & rs & imm7_23 & op0_6=0b1010011 {
-#    rd = imm - rs;
+:sub.x.i rd, rs, "#"imm7_23 is rd & rs & imm7_23 & op0_6=0b1010011 {
+    rd = imm7_23 - rs;
 #    flags_sub();
-#}
+}
 :sub.i is op16_0_11=0b001000000000 {
 	stub();
 }
@@ -1655,13 +1650,13 @@ define pcodeop sleepsif;
     rd = (zext(V) * rs) + (zext(~V)*rt);
 }
 
-#:swap.r rd, "@(" rt, ra ")" is rd & rs & op12_23=0b111111101100 & rt & op0_7=0b01111111 {
-#	local ea:4 = (rt << 2) + ra;
-#    local a:4 = *[ram]:4 ea;
-#    *[ram]:4 ea = rd;
-#    rd = a;
-#    flags_nz(rd);
-#}
+:swap.r rd, "@(" rt, rs ")" is rd & rs & op12_23=0b111111101100 & rt & op0_7=0b01111111 {
+	local ea:4 = (rt << 2) + rs;
+    local a:4 = *[ram]:4 ea;
+    *[ram]:4 ea = rd;
+    rd = a;
+    flags_nz(rd);
+}
 
 define pcodeop trap;
 :trap.i is op20_31=0b000000000000 & imm7_19 & op0_6=0b1111111 {
