@@ -1,5 +1,4 @@
 
-#TODO: test on real binary
 #TODO: split code / ram
 ##TODO: B/Le
 #TODO: ram sz
@@ -91,6 +90,7 @@ define bitrange E=flags[8,1]
                 Z=flags[0,1]
 ;
 
+#TODO op vs imm
 define token opbyte (32)
     op0_31 = (0, 31)
     op0_23 = (0, 23)
@@ -182,13 +182,10 @@ define token opbyte (32)
 ;
 
 define token opbyte16 (16)
-    op16_0_7   = (0, 7)
     rd16       = (12, 15)
     rt16       = (8, 11)
-    op16_0_16  = (0, 15) #TODO name
     op16_0_11  = (0, 11)
     op16_0_4  = (0, 4)
-    op16_0_3  = (0, 3)
     op16_12_15  = (12, 15)
     offset16 = (4, 11)
     offset16_4_13 = (4, 13)
@@ -208,11 +205,11 @@ define token opbyte16 (16)
     rx3a = (13, 15)
     ra3a = (10, 12)
     rd2 = (8, 9)
-    imm16_0_7 = (0, 7)
-    imm16_8_9 = (8, 9)
+    op16_0_7 = (0, 7)
+    op16_8_9 = (8, 9)
     imm16_4_7 = (4, 7)
     imm16_4_8 = (4, 8)
-    imm16_0_3 = (0, 3)
+    op16_0_3 = (0, 3)
     rd3b = (13, 15)
     ra3c = (10, 12)
     
@@ -822,30 +819,35 @@ macro cmp_impl(a, b) {
     C = (rt == 0);
 }
 
-#TODO: all flags under this line
 define pcodeop flip_16b;
 :flip.16b.r rd, rs, rt, "#"sel is rd & rs & op18_23=0b000100 & sel & op12_15=0b0101 & rt & op0_7=0b01111111 {
     rd = flip_16b(rs, rt, sel:1);
+    flags_nz(rd);
 }
 define pcodeop flip_16x; 
 :flip.16x.r rd, rs, rt, "#"sel is rd & rs & op18_23=0b000100 & sel & op12_15=0b0010 & rt & op0_7=0b01111111 {
     rd = flip_16x(rs, rt, sel:1);
+    flags_nz(rd);
 } 
 define pcodeop flip_8x;
 :flip.8x.r rd, rs, rt, "#"sel is rd & rs & op18_23=0b000100 & sel & op12_15=0b0011 & rt & op0_7=0b01111111 {
     rd = flip_8x(rs, rt, sel:1);
+    flags_nz(rd);
 }
 define pcodeop flip_b; 
 :flip.b.r rd, rs, rt, "#"sel is rd & rs & op18_23=0b000100 & sel & op12_15=0b0100 & rt & op0_7=0b01111111 {
     rd = flip_b(rs, rt, sel:1);
+    flags_nz(rd);
 }
 define pcodeop flip;
 :flip.r rd, rs, rt, "#"sel is rd & rs & op18_23=0b000100 & sel & op12_15=0b0000 & rt & op0_7=0b01111111 {
     rd = flip(rs, rt, sel:1);
+    flags_nz(rd);
 }
 define pcodeop flip_x; 
 :flip.x.r rd, rs, rt, "#"sel is rd & rs & op18_23=0b000100 & sel & op12_15=0b0001 & rt & op0_7=0b01111111 {
     rd = flip_x(rs, rt, sel:1);
+    flags_nz(rd);
 } 
 
 define pcodeop halt;
@@ -853,19 +855,18 @@ define pcodeop halt;
     halt();
 }
 
-define pcodeop irqd;
 :irqd is op0_31=0b00000000111111111110010101111111 {
-    irqd();
+    E = 0;
 }
 
-define pcodeop irqe;
 :irqe is op0_31=0b00000000111111111110010001111111 {
-    irqe();
+    E = 1;
 }
 
-define pcodeop irqs;
 :irqs rd is rd & op0_27=0b0000111111111110011001111111 {
-    irqs(rd);
+    rd = zext(E)	;
+    N = 0;
+    Z = rd == 0;
 }
 
 :ld.16s.i rd, "@(" imm, rs ")" is rd & rs & imm & op0_6=0b1101111 {
@@ -887,7 +888,7 @@ define pcodeop irqs;
     rd = zext(tmp);
     flags_nz(rd);
 }
-:ld.16z.i rd3e, "@(" ra3c, imm16_4_7 ")" is rd3e & ra3c & imm16_8_9=0b01 & imm16_4_7 & imm16_0_3=0b0100 {
+:ld.16z.i rd3e, "@(" ra3c, imm16_4_7 ")" is rd3e & ra3c & op16_8_9=0b01 & imm16_4_7 & op16_0_3=0b0100 {
     local ea:4 = ra3c + imm16_4_7;
     local tmp:2 = *[ram]:2 ea;
     rd3e = zext(tmp);
@@ -900,7 +901,7 @@ define pcodeop irqs;
     rd = zext(tmp);
     flags_nz(rd);
 }
-:ld.16z.r rx3a, "@(" ra3a, rd2 ")" is rx3a & ra3a & rd2 & imm16_0_7=0b10010000 {
+:ld.16z.r rx3a, "@(" ra3a, rd2 ")" is rx3a & ra3a & rd2 & op16_0_7=0b10010000 {
     local ea:4 = (ra3a<<1) + rd2;
     local tmp:2 = *[ram]:2 ea;
     rx3a = zext(tmp);
@@ -924,7 +925,7 @@ define pcodeop irqs;
     rd = zext(tmp);
     flags_nz(rd);
 }
-:ld.8z.i rd3e, "@(" ra3c, imm16_4_7 ")" is rd3e & ra3c & imm16_8_9=0b00 & imm16_4_7 & imm16_0_3=0b0100 {
+:ld.8z.i rd3e, "@(" ra3c, imm16_4_7 ")" is rd3e & ra3c & op16_8_9=0b00 & imm16_4_7 & op16_0_3=0b0100 {
     local ea:4 = ra3c + imm16_4_7;
     local tmp:1 = *[ram]:1 ea;
     rd3e = zext(tmp);
@@ -937,7 +938,7 @@ define pcodeop irqs;
     rd = zext(tmp);
     flags_nz(rd);
 }
-:ld.8z.r rx3a, "@(" ra3a, rd2 ")" is rx3a & ra3a & rd2 & imm16_0_7=0b10100000 {
+:ld.8z.r rx3a, "@(" ra3a, rd2 ")" is rx3a & ra3a & rd2 & op16_0_7=0b10100000 {
     local ea:4 = ra3a + rd2;
     local tmp:2 = *[ram]:2 ea;
     rx3a = zext(tmp);
@@ -949,7 +950,7 @@ define pcodeop irqs;
     rd = *[ram]:4 ea;
     flags_nz(rd);
 }
-:ld.i rd3e, "@(" rs16, imm16_4_8 ")" is rd3e & rs16 & imm16_4_8 & imm16_0_3=0b0110 {
+:ld.i rd3e, "@(" rs16, imm16_4_8 ")" is rd3e & rs16 & imm16_4_8 & op16_0_3=0b0110 {
     local ea:4 = rs16 + imm16_4_8;
     local tmp:4 = *[ram]:4 ea;
     rd3e = zext(tmp);
@@ -961,7 +962,7 @@ define pcodeop irqs;
     rd = *[ram]:4 ea;
     flags_nz(rd);
 }
-:ld.r rx3a, "@(" ra3a, rd2 ")" is rx3a & ra3a & rd2 & imm16_0_7=0b10000000 {
+:ld.r rx3a, "@(" ra3a, rd2 ")" is rx3a & ra3a & rd2 & op16_0_7=0b10000000 {
     local ea:4 = (ra3a<<2) + rd2;
     local tmp:4 = *[ram]:4 ea;
     rx3a = zext(tmp);
@@ -1034,6 +1035,7 @@ ldm_reglist0: ldm_reglist1 is op16=0 {}
 
 ldm_reglist: "{" ldm_reglist1 "}" is ldm_reglist1 { build ldm_reglist1; }
 
+#TODO: flags
 :ldm ldm_reglist, "@(" lowbit ", " ra ")" is ldm_reglist & ra & lowbit & op0_6=0b0111001 {
 	ldm_src = ra + lowbit;
 	build ldm_reglist;
@@ -1061,17 +1063,20 @@ ldm_reglist16_0: ldm_reglist16_1 is op16_4=0 & ldm_reglist16_1 { build ldm_regli
 
 ldm_reglist16: "{" ldm_reglist16_0 "}" is ldm_reglist16_0 { build ldm_reglist16_0; }
 
+#TODO flags
 :ldm ldm_reglist16, "@(" 0 ", " rs16 ")" is op16_13_15=0b100 & rs16 & ldm_reglist16 & op16_0_3=0b1110 {
 	ldm_src = rs16;
 	build ldm_reglist16;
 }
 
 #TODO: always user
+#TODO: flags
 :ldm.u ldm_reglist, "@(0, " ra ")" is ldm_reglist & ra & op0_11=0b111110111001 {
 	ldm_src = ra;
 	build ldm_reglist;
 }
 
+#TODO: flags
 :ldm.x ldm_reglist, "@("imm7_11", " ra ")" is ldm_reglist & ra & imm7_11 & op0_6=0b0111011 {
 	ldm_src = ra + imm7_11;
 	build ldm_reglist;
@@ -1086,6 +1091,9 @@ splitrd: is imm7_8 & imm1_2 {
 	local r:2 = imm7_8 | (imm1_2 << 2);
     export *[register] r;
 }
+
+#TODO: all flags under this line
+
 #TODO: tgt
 :mov.g splitrd, tgt is mov_offset & op3_6=0b0100 & splitrd & op0=1 [tgt = 0;] {
 #    splitrd = GP + tgt;
