@@ -3,6 +3,7 @@
 ##TODO: B/Le
 #TODO: ram sz
 #TODO: reg % prefix, # before imm, 
+#TODO: replace rd and rs in instruction with table to handle R0
 
 define endian=big;
 define alignment=2;
@@ -17,8 +18,8 @@ define register offset=0x30 size=8 [
 	R10_64
 ];
 
-#TODO: support for R0, == 0
 define register offset=0x00 size=4 [
+	R0
     R1_U
     R1_S
     R1_I
@@ -194,6 +195,7 @@ define token opbyte16 (16)
     rs3a = (13, 15)
     shift16 = (4, 8)
     rd3e = (9, 11)
+    rs3d = (13, 15)
     rs16 = (9, 12)
     op16_14_15 = (14, 15)
     op16_13_15 = (13, 15)
@@ -348,8 +350,9 @@ attach variables [rd2] [
     R3
 ];
 
-#TODO: check
+
 attach variables [ rd rs rt rs16 rt16 rd16 ] [ #rs16 movp_rd pop_rs ra
+ 	R0
     R1_U
     R2_U
     R3
@@ -365,7 +368,6 @@ attach variables [ rd rs rt rs16 rt16 rd16 ] [ #rs16 movp_rd pop_rs ra
     R13
     R14_U
     R15_U
-	_	
 ];
 
 attach variables [ rs3a ] [
@@ -375,6 +377,17 @@ attach variables [ rs3a ] [
     R3
     R4
     R9
+    R6
+    R7
+];
+
+attach variables [ rs3d ] [
+    R0
+    R1_U
+    R2_U
+    R3
+    R4
+    R5
     R6
     R7
 ];
@@ -394,6 +407,15 @@ h_imm: is imm {
 h_imm8_23: is imm8_23 {
 	local b15:4 = zext(imm8_23:2);
 	local low:2 = imm8_23:2 & 0x8000;
+	low = low s>> 15;
+	local tmp:4 = b15 | zext(low);
+	export *[const]:4 tmp;
+}
+
+# Take bits [31:15] from imm, repeat bit [15] into [14:0] of the imm
+h_imm7_23: is imm7_23 {
+	local b15:4 = zext(imm7_23:2);
+	local low:2 = imm7_23:2 & 0x8000;
 	low = low s>> 15;
 	local tmp:4 = b15 | zext(low);
 	export *[const]:4 tmp;
@@ -754,23 +776,34 @@ macro cmp_impl(a, b) {
     V = sborrow(rs, rt+zext(C));
 }
 
-#TODO: all cmp flags under this line
 :cmp.8x.i rs, "#"imm7_14 is op28_31=0b0001 & rs & imm15_23=0b000000000 & imm7_14 & op0_7=0b1010101 {
     cmp_impl(imm7_14:1, rs:1);
 }
 :cmp.8xc.i rs, "#"imm7_14 is op28_31=0b0011 & rs & imm15_23=0b000000000 & imm7_14 & op0_7=0b1010101 {
-    stub();
+    Z = (rs:1 + zext(C) == imm7_14:1);
+    N = imm7_14:1 s< (rs+zext(C));
+    C = imm7_14:1 < (rs + zext(C));
+    V = sborrow(imm7_14, rs+zext(C));
 }
 
-:cmp.c.h rs, "#"imm is op28_31=0b1010 & rs & imm & op0_6=0b1000101 {
-    stub();
+:cmp.c.h rs, "#"h_imm is op28_31=0b1010 & rs & h_imm & op0_6=0b1000101 {
+    Z = (h_imm + zext(C) == rs);
+    N = rs s< (h_imm+zext(C));
+    C = rs < (h_imm + zext(C));
+    V = sborrow(rs, h_imm+zext(C));
 }
 :cmp.c.i rs, "#"imm is op28_31=0b1010 & rs & imm & op0_6=0b1010101 {
-    stub();
+    Z = (imm + zext(C) == rs);
+    N = rs s< (imm+zext(C));
+    C = rs < (imm + zext(C));
+    V = sborrow(rs, imm+zext(C));
 }
 
 :cmp.c.r rs, rt is op28_31=0b1010 & rs & op12_23=0b111111110010 & rt & op0_7=0b01111111 {
-    stub();
+    Z = (rt + zext(C) == rs);
+    N = rs s< (rt+zext(C));
+    C = rs < (rt + zext(C));
+    V = sborrow(rs, rt+zext(C));
 }
 
 :cmp.h rs, "#"h_imm is op28_31=0b1000 & rs & h_imm & op0_6=0b1000101 {
@@ -798,12 +831,19 @@ macro cmp_impl(a, b) {
 :cmp.x.i rs, "#"imm is op28_31=0b1001 & rs & imm & op0_6=0b1010101 {
     cmp_impl(imm:4, rs);
 }
-:cmp.xc.h rs, "#"imm is op28_31=0b1011 & rs & imm & op0_6=0b1000101 {
-    stub();
+
+:cmp.xc.h rs, "#"h_imm is op28_31=0b1011 & rs & h_imm & op0_6=0b1000101 {
+    Z = (rs + zext(C) == h_imm);
+    N = h_imm s< (rs+zext(C));
+    C = h_imm < (rs + zext(C));
+    V = sborrow(h_imm, rs+zext(C));
 }
 
 :cmp.xc.i rs, "#"imm is op28_31=0b1011 & rs & imm & op0_6=0b1010101 {
-    stub();
+    Z = (rs + zext(C) == imm);
+    N = imm s< (rs+zext(C));
+    C = imm < (rs + zext(C));
+    V = sborrow(imm, rs+zext(C));
 }
 
 :div.s.r rd, rs, rt is rd & rs & op12_23=0b111111111010 & rt & op0_7=0b01111111 {
@@ -969,7 +1009,6 @@ define pcodeop halt;
     flags_nz(rx3a);
 }
 
-#TODO: check reg names here
 ldm_reglist15: R15_U is op31=1 & R15_U { R15_U = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
 ldm_reglist15: "" is op31=0 {}
 
@@ -1041,7 +1080,6 @@ ldm_reglist: "{" ldm_reglist1 "}" is ldm_reglist1 { build ldm_reglist1; }
 	build ldm_reglist;
 }
 
-# TODO: end at bit 8 or 9 
 ldm_reglist16_4: R5 is op16_8=1 & R5 { R5 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
 ldm_reglist16_4: "" is op16_8=0 {}
 
@@ -1352,13 +1390,12 @@ define pcodeop print;
 :shiftl.i rd3e, "#"shift16 is op16_12_15=0b0010 & rd3e & shift16 & op16_0_3=0b1110 {
     rd3e = rd3e << shift16;
 }
-#TODO
-#:and.i rd3e, rd3e, "#"i is op16_12_15=0b0100 & rd3e & shift16 & op0_3=0b1110 [ i = 2**(shift16 + 1) - 1;] {
-#    stub();
-#}
-#:and.i rd3e, rd3e, "#"i is op16_12_15=0b0110 & rd3e & shift16 & op0_3=0b1110 [ i = 2**shift16;] {
-#    stub();
-#}
+:and.i rd3e, rd3e, "#"i is op16_12_15=0b0100 & rd3e & shift16 & op0_3=0b1110 [ i = 1<<(shift16 + 1) - 1;] {
+    stub();
+}
+:and.i rd3e, rd3e, "#"i is op16_12_15=0b0110 & rd3e & shift16 & op0_3=0b1110 [ i = 1<<shift16;] {
+    stub();
+}
 
 :rotatel.r rd, rs, rt is rd & rs & op12_23=0b111111101011 & rt & op0_7=0b11111111 {
     stub();
@@ -1551,16 +1588,16 @@ define pcodeop sleepsif;
 	local ea:4 = rs + imm;
 	*[ram]:2 ea = rd:2;
 }
-#:st.16.i rs3d, "@(" imm16_4_7, ra3c ")" is rs3d & ra3c & op16_8_9=0b11 & imm16_4_7 & op16_0_3=0b0100 {
-#	local ea:4 = ra3c + imm16_4_7;
-#	*[ram]:2 ea = rs3d:2;
-#}
+:st.16.i rs3d, "@(" imm16_4_7, ra3c ")" is rs3d & ra3c & op16_8_9=0b11 & imm16_4_7 & op16_0_3=0b0100 {
+	local ea:4 = ra3c + imm16_4_7;
+	*[ram]:2 ea = rs3d:2;
+}
 
 :st.16.r rd, "@(" rt, rs ")" is rd & rs & op12_23=0b111111100101 & rt & op0_7=0b01111111 {
 	#TODO: check the scaling on ld and stores everywhere
     local ea:4 = (rs<<1) + rt;
 	*[ram]:2 ea = rd:2;
-}#
+}
 #TODO: regs
 :st.16.r ra3a, "@(" ra3c, rd2 ")" is ra3a & ra3c & rd2 & op16_0_7=0b11010000 {
 	local ea:4 = (rd2<<1) + ra3c;
@@ -1572,38 +1609,38 @@ define pcodeop sleepsif;
 	local ea:4 = rs + imm;
 	*[ram]:1 ea = rd:1;
 }
-#:st.8.i rs3d, "@(" imm16_4_7, ra3c ")" is rs3d & ra3c & op16_8_9=0b10 & imm16_4_7 & op16_0_3=0b0100 {
-#	local ea:4 = ra3c + imm16_4_7;
-#	*[ram]:1 ea = rs3d:1;
-#}
+:st.8.i rs3d, "@(" imm16_4_7, ra3c ")" is rs3d & ra3c & op16_8_9=0b10 & imm16_4_7 & op16_0_3=0b0100 {
+	local ea:4 = ra3c + imm16_4_7;
+	*[ram]:1 ea = rs3d:1;
+}
 
 
 :st.8.r rd, "@(" rt, rs ")" is rd & rs & op12_23=0b111111100110 & rt & op0_7=0b01111111 {
     local ea:4 = rs + rt;
 	*[ram]:1 ea = rd:1;
 }
-#:st.8.r ra3c, "@(" rx3a, rd2 ")" is ra3a & ra3c & rd2 & op16_0_7=0b11100000 {
-#	local ea:4 = rx3a + rd2;
-#	*[ram]:2 ea = ra3c:2;
-#}
-#
+:st.8.r ra3c, "@(" rx3a, rd2 ")" is ra3a & ra3c & rd2 & op16_0_7=0b11100000 {
+	local ea:4 = rx3a + rd2;
+	*[ram]:2 ea = ra3c:2;
+}
+
 :st.i rd, "@(" imm "," rs ")" is rd & rs & imm & op0_6=0b1101001 {
     local ea:4 = rs + imm;
 	*[ram]:4 ea = rd;
 }
-#:st.i rs3d, "@(" imm16_4_8, ra3c ")" is rs3d & rs16 & imm16_4_8 & op16_0_3=0b1000 {
-#	local ea:4 = ra3c + imm16_4_8;
-#	*[ram]:4 ea = rs3d;
-#}
-#
+:st.i rs3d, "@(" imm16_4_8, ra3c ")" is rs3d & rs16 & imm16_4_8 & op16_0_3=0b1000 {
+	local ea:4 = ra3c + imm16_4_8;
+	*[ram]:4 ea = rs3d;
+}
+
 :st.r rd, "@(" rs, rt ")" is rd & rs & op12_23=0b111111100100 & rt & op0_7=0b01111111 {
     local ea:4 = (rs<<2) + rt;
 	*[ram]:4 ea = rd;
 }
-#:st.r ra3c, "@(" rx3a, rd2 ")" is ra3a & ra3c & rd2 & op16_0_7=0b11000000 {
-#	local ea:4 = (rx3a<<2) + rd2;
-#	*[ram]:4 ea = ra3c;
-#}
+:st.r ra3c, "@(" rx3a, rd2 ")" is ra3a & ra3c & rd2 & op16_0_7=0b11000000 {
+	local ea:4 = (rx3a<<2) + rd2;
+	*[ram]:4 ea = ra3c;
+}
 
 :stm is op0_6=0b0111101 {
     stub();
@@ -1631,10 +1668,10 @@ define pcodeop sleepsif;
 	stub();
 }
 
-#:sub.x.h rd, rs, "#"h_imm7_23 is rd & rs & h_imm7_23 & op0_6=0b1000011 {
-#    rd = h_imm7_23 - rs;
+:sub.x.h rd, rs, "#"h_imm7_23 is rd & rs & h_imm7_23 & op0_6=0b1000011 {
+    rd = h_imm7_23 - rs;
 #    flags_sub();
-#}
+}
 :sub.x.i rd, rs, "#"imm7_23 is rd & rs & imm7_23 & op0_6=0b1010011 {
     rd = imm7_23 - rs;
 #    flags_sub();
