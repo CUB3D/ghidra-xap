@@ -78,6 +78,7 @@ define register offset=0x00 size=4 [
     
     # Special register for multi load/stores
     ldm_src
+    ldm_last
 ];
 
 define bitrange E=flags[8,1]
@@ -421,6 +422,13 @@ h_imm7_23: is imm7_23 {
 	export *[const]:4 tmp;
 }
 
+macro rotl32(out, a, b) {
+    local d:4 = b;
+    local n:4 = a;
+    local out1:4 = (n << d) | ( n >> (32 - d));
+    out = out1;
+}
+
 macro flags_nz(dest) {
 	Z = dest != 0;
 	N = dest s< 0;
@@ -520,11 +528,15 @@ macro flags_nz(dest) {
     flags_nz(rd16);
 }
 
-:bcase.2 rd, "#"imm is rd & op20_27=0b00010000 & imm & op0_6=0b1111111 {
-    stub();
+:bcase.2 rd, "#"imm is rd & op20_27=0b00010000 & imm & op0_6=0b1111111{
+    if(rd >= imm) goto inst_next;
+    local tgt: 4 = inst_next + (rd + 1) << 1;
+    goto [tgt];
 }
 :bcase.4 rd, "#"imm is rd & op20_27=0b00100000 & imm & op0_6=0b1111111 {
-    stub();
+    if(rd >= imm) goto inst_next;
+    local tgt: 4 = inst_next + (rd + 1) << 2;
+    goto [tgt];
 }
 
 branch_tgt: tgt is offsetval [tgt = inst_next + (offsetval << 1);] {export *[const]:4 tgt; }
@@ -1161,8 +1173,40 @@ splitrd: is imm7_8 & imm1_2 {
 :movb2r rd, brs is rd & brs & op0_23=0b111111111110001101111111 {
     rd = brs;
 }
-:movm is op0_6=0b0101001 {
-    stub();
+
+movm_r1:R1_U is imm12_15=0 & op7=0 & R1_U { export *[const]:4 R1_U; }
+movm_r1:Rs1 is Rs1 & op7=0 [ldm_last = Rs1;] { export *[const]:4 Rs1; }
+movm_r1:"-1" is imm12_15=0 & op7=1 { local tmp:4 = -1; export *[const]:4 tmp; }
+movm_r1:imm12_15 is imm12_15 & op7=1 [ldm_last = imm12_15;] { export *[const]:4 imm12_15; }
+
+movm_r2:R2_U is imm16_19=0 & op7=0 & R2_U { export *[const]:4 R2_U; }
+movm_r2:Rs2 is Rs2 & op7=0 [ldm_last = Rs2;] { export *[const]:4 Rs2; }
+movm_r2:"-1" is imm16_19=0 & op7=1 { local tmp:4 = -1; export *[const]:4 tmp; }
+movm_r2:imm16_19  is imm16_19 & op7=1 [ldm_last = imm16_19;] { export *[const]:4 imm16_19; }
+
+movm_r3:R3 is imm20_23=0 & op7=0 & R3 { export *[const]:4 R3; }
+movm_r3:Rs3 is Rs3 & op7=0 [ldm_last = Rs3;] { export *[const]:4 Rs3; }
+movm_r3:"-1" is imm20_23=0 & op7=1 { local tmp:4 = -1; export *[const]:4 tmp; }
+movm_r3:imm20_23  is imm20_23 & op7=1 [ldm_last = imm20_23;] { export *[const]:4 imm20_23; }
+
+movm_r4:R4 is imm24_27=0 & op7=0 & R4 { export *[const]:4 R4; }
+movm_r4:Rs4 is Rs4 & op7=0 [ldm_last = Rs4;] { export *[const]:4 Rs4; }
+movm_r4:"-1" is imm24_27=0 & op7=1 { local tmp:4 = -1; export *[const]:4 tmp; }
+movm_r4:imm24_27  is imm24_27 & op7=1 [ldm_last = imm24_27;] { export *[const]:4 imm24_27; }
+
+movm_r5:R5 is imm28_31=0 & op7=0 & R5 { export *[const]:4 R5; }
+movm_r5:Rs5 is Rs5 & op7=0 [ldm_last = Rs5;] { export *[const]:4 Rs5; }
+movm_r5:"-1" is imm28_31=0 & op7=1 { local tmp:4 = -1; export *[const]:4 tmp; }
+movm_r5:imm28_31  is imm28_31 & op7=1 [ldm_last = imm28_31;] { export *[const]:4 imm28_31; }
+
+#TODO: technically wrong if all are copies to self
+:movm movm_r5, movm_r4, movm_r3, movm_r2, movm_r1 is movm_r5 & movm_r4 & movm_r3 & movm_r2 & movm_r1 & op0_6=0b0101001 [ldm_last = 0;] {
+    build movm_r1;
+    build movm_r2;
+    build movm_r3;
+    build movm_r4;
+    build movm_r5;
+    flags_nz(ldm_last);
 }
 :movm is op16_15=0 & op16_0_3=0b1010 {
 	stub();
@@ -1391,14 +1435,14 @@ define pcodeop print;
     rd3e = rd3e << shift16;
 }
 :and.i rd3e, rd3e, "#"i is op16_12_15=0b0100 & rd3e & shift16 & op0_3=0b1110 [ i = 1<<(shift16 + 1) - 1;] {
-    stub();
+    rd3e = rd3e & i;
 }
 :and.i rd3e, rd3e, "#"i is op16_12_15=0b0110 & rd3e & shift16 & op0_3=0b1110 [ i = 1<<shift16;] {
-    stub();
+    rd3e = rd3e & i;
 }
 
 :rotatel.r rd, rs, rt is rd & rs & op12_23=0b111111101011 & rt & op0_7=0b11111111 {
-    stub();
+    rotl32(rd, rs, rt);
 }
 
 define pcodeop rtie;
