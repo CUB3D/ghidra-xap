@@ -181,6 +181,18 @@ define token opbyte (32)
     rd64 = (28, 31)
     rsd = (28, 31)
     rss = (24, 27)
+    
+    #TODO: op
+    imm12_15 = (12, 15)
+    imm16_19 = (16, 19)
+    imm24_27 = (24, 27)
+    imm28_31 = (28, 31)
+    
+    Rs1 = (12, 15)
+    Rs2 = (16, 19)
+    Rs3 = (20, 23)
+    Rs4 = (24, 27)
+    Rs5 = (20, 31)
 ;
 
 define token opbyte16 (16)
@@ -225,6 +237,18 @@ define token opbyte16 (16)
     op16_6_8 = (6, 8)
     op16_5_8 = (5, 8)
     op16_8_8 = (8, 8)
+    
+    rsA = (4, 7)
+    rsB = (8, 11)
+    rdA = (12, 14)
+    rdB = (12, 14)
+    
+    op16_6_7 = (6, 7)
+    op16_4_7 = (4, 7)
+    op16_10_11 = (10, 11)
+    op16_8_11 = (8, 11)
+    
+    imm16_8_9 = (8, 9)
 ;
 
 define register offset=0x100 size=4 contextreg;
@@ -300,6 +324,47 @@ attach variables [rd64] [
 	_
 ];
 
+attach variables [rdA] [
+	R1_U
+	R1_U
+	R1_U
+	R1_U
+	R2_U
+	R2_U
+	R3
+	R4
+];
+
+attach variables [rdB] [
+	R2_U
+	R3
+	R4
+	R5
+	R3
+	R4
+	R4
+	R5
+];
+
+attach variables [ rsA rsB ] [
+	R0
+	R1_U
+	R2_U
+	R3
+	R4
+	R5
+	R6
+	R7
+	R8
+	R9
+	R10
+	R15
+	_
+	_
+	_
+	_
+];
+
 attach variables [rx3a ra3a] [
     R8
     R1_U
@@ -352,7 +417,7 @@ attach variables [rd2] [
 ];
 
 
-attach variables [ rd rs rt rs16 rt16 rd16 ] [ #rs16 movp_rd pop_rs ra
+attach variables [ rd rs rt rs16 rt16 rd16 Rs1 Rs2 Rs3 Rs4 Rs5] [ #rs16 movp_rd pop_rs ra
  	R0
     R1_U
     R2_U
@@ -1175,32 +1240,33 @@ splitrd: is imm7_8 & imm1_2 {
 }
 
 movm_r1:R1_U is imm12_15=0 & op7=0 & R1_U { export *[const]:4 R1_U; }
-movm_r1:Rs1 is Rs1 & op7=0 [ldm_last = Rs1;] { export *[const]:4 Rs1; }
+movm_r1:Rs1 is Rs1 & op7=0 { ldm_last = Rs1; export *[const]:4 Rs1; }
 movm_r1:"-1" is imm12_15=0 & op7=1 { local tmp:4 = -1; export *[const]:4 tmp; }
-movm_r1:imm12_15 is imm12_15 & op7=1 [ldm_last = imm12_15;] { export *[const]:4 imm12_15; }
+movm_r1:imm12_15 is imm12_15 & op7=1 { ldm_last = imm12_15; export *[const]:4 imm12_15; }
 
 movm_r2:R2_U is imm16_19=0 & op7=0 & R2_U { export *[const]:4 R2_U; }
-movm_r2:Rs2 is Rs2 & op7=0 [ldm_last = Rs2;] { export *[const]:4 Rs2; }
+movm_r2:Rs2 is Rs2 & op7=0 { ldm_last = Rs2; export *[const]:4 Rs2; }
 movm_r2:"-1" is imm16_19=0 & op7=1 { local tmp:4 = -1; export *[const]:4 tmp; }
-movm_r2:imm16_19  is imm16_19 & op7=1 [ldm_last = imm16_19;] { export *[const]:4 imm16_19; }
+movm_r2:imm16_19  is imm16_19 & op7=1 { ldm_last = imm16_19; export *[const]:4 imm16_19; }
 
 movm_r3:R3 is imm20_23=0 & op7=0 & R3 { export *[const]:4 R3; }
-movm_r3:Rs3 is Rs3 & op7=0 [ldm_last = Rs3;] { export *[const]:4 Rs3; }
+movm_r3:Rs3 is Rs3 & op7=0 { ldm_last = Rs3; export *[const]:4 Rs3; }
 movm_r3:"-1" is imm20_23=0 & op7=1 { local tmp:4 = -1; export *[const]:4 tmp; }
-movm_r3:imm20_23  is imm20_23 & op7=1 [ldm_last = imm20_23;] { export *[const]:4 imm20_23; }
+movm_r3:imm20_23  is imm20_23 & op7=1 { ldm_last = imm20_23; export *[const]:4 imm20_23; }
 
 movm_r4:R4 is imm24_27=0 & op7=0 & R4 { export *[const]:4 R4; }
-movm_r4:Rs4 is Rs4 & op7=0 [ldm_last = Rs4;] { export *[const]:4 Rs4; }
+movm_r4:Rs4 is Rs4 & op7=0 { ldm_last = Rs4; export *[const]:4 Rs4; }
 movm_r4:"-1" is imm24_27=0 & op7=1 { local tmp:4 = -1; export *[const]:4 tmp; }
-movm_r4:imm24_27  is imm24_27 & op7=1 [ldm_last = imm24_27;] { export *[const]:4 imm24_27; }
+movm_r4:imm24_27  is imm24_27 & op7=1 { ldm_last = imm24_27; export *[const]:4 imm24_27; }
 
 movm_r5:R5 is imm28_31=0 & op7=0 & R5 { export *[const]:4 R5; }
-movm_r5:Rs5 is Rs5 & op7=0 [ldm_last = Rs5;] { export *[const]:4 Rs5; }
+movm_r5:Rs5 is Rs5 & op7=0 { ldm_last = Rs5; export *[const]:4 Rs5; }
 movm_r5:"-1" is imm28_31=0 & op7=1 { local tmp:4 = -1; export *[const]:4 tmp; }
-movm_r5:imm28_31  is imm28_31 & op7=1 [ldm_last = imm28_31;] { export *[const]:4 imm28_31; }
+movm_r5:imm28_31  is imm28_31 & op7=1 { ldm_last = imm28_31; export *[const]:4 imm28_31; }
 
 #TODO: technically wrong if all are copies to self
-:movm movm_r5, movm_r4, movm_r3, movm_r2, movm_r1 is movm_r5 & movm_r4 & movm_r3 & movm_r2 & movm_r1 & op0_6=0b0101001 [ldm_last = 0;] {
+:movm movm_r1, movm_r2, movm_r3, movm_r4, movm_r5 is movm_r5 & movm_r4 & movm_r3 & movm_r2 & movm_r1 & op0_6=0b0101001 {
+	ldm_last = 0;
     build movm_r1;
     build movm_r2;
     build movm_r3;
@@ -1208,12 +1274,32 @@ movm_r5:imm28_31  is imm28_31 & op7=1 [ldm_last = imm28_31;] { export *[const]:4
     build movm_r5;
     flags_nz(ldm_last);
 }
-:movm is op16_15=0 & op16_0_3=0b1010 {
-	stub();
+
+RsA: rsA is rsA & op16_6_7=0b00 { export *[const]:4 rsA; }
+RsA: rsA is rsA & op16_4_7=12 { local tmp:4 = 4; export *[const]:4 tmp; }
+RsA: rsA is rsA & op16_4_7=13 { local tmp:4 = 1; export *[const]:4 tmp; }
+RsA: rsA is rsA & op16_4_7=14 { local tmp:4 = 2; export *[const]:4 tmp; }
+RsA: rsA is rsA & op16_4_7=15 { local tmp:4 = 3; export *[const]:4 tmp; }
+
+RsB: rsB is rsB & op16_10_11=0b00 { export *[const]:4 rsA; }
+RsB: rsB is rsB & op16_8_11=12 { local tmp:4 = 4; export *[const]:4 tmp; }
+RsB: rsB is rsB & op16_8_11=13 { local tmp:4 = 1; export *[const]:4 tmp; }
+RsB: rsB is rsB & op16_8_11=14 { local tmp:4 = 2; export *[const]:4 tmp; }
+RsB: rsB is rsB & op16_8_11=15 { local tmp:4 = 3; export *[const]:4 tmp; }
+
+:movm is op16_15=0 & rdB & rdA & RsB & RsA & op16_0_3=0b1010 {
+	rdA = RsA;
+	rdB = RsB;
+	flags_nz(rdB);
 }
 
-:movm.x is op0_6=0b0101011 {
-    stub();
+:movm.x movm_r1, movm_r2, movm_r3, movm_r4, movm_r5 is movm_r5 & movm_r4 & movm_r3 & movm_r2 & movm_r1 & op0_6=0b0101011 {
+    build movm_r5;
+    build movm_r4;
+    build movm_r3;
+    build movm_r2;
+    build movm_r1;       
+    flags_nz(ldm_last);
 }
 
 :movr2b brd, rs is brd & rs & op0_23=0b111111111110001001111111 {
@@ -1331,13 +1417,51 @@ macro pop(r) {
 :pop "#"imm17_20, reglist, "#"imm7_16 is op31=1 & reglist & op21=1 & imm17_20 & imm7_16 & op0_6=0b0011111 {
 	R1_U = imm17_20;
 	build reglist;
+	
+	#TODO: order?
+	
+	if(push_r6:1 == 0) goto <nor6>;
+	 pop(R6); 
+	<nor6>
+	
+	if(push_r7:1 == 0) goto <nor7>;
+	 pop(R7); 
+	<nor7>
+	
+	if(push_r8:1 == 0) goto <nor8>;
+	 pop(R8); 
+	<nor8>
+	
+	if(push_r9:1 == 0) goto <nor9>;
+	 pop(R9); 
+	<nor9>
+	
+	if(push_r10:1 == 0) goto <nor10>;
+	 pop(R10); 
+	<nor10>
+	
+	if(push_r11:1 == 0) goto <nor11>;
+	 pop(R11); 
+	<nor11>
+	
+	if(push_r12:1 == 0) goto <nor12>;
+	 pop(R12); 
+	<nor12>
+	
+	if(push_r13:1 == 0) goto <nor13>;
+	 pop(R13); 
+	<nor13>
+	
+	if(push_r14:1 == 0) goto <nor14>;
+	 pop(R14_U);
+	<nor14>
 }
 
 :pop pop_rs, reglist, "#"imm7_16 is op31=0 & reglist & op21=0 & pop_rs & imm7_16 & op0_6=0b0011111 
 & push_r6 & push_r7 & push_r8 & push_r9 & push_r10 & push_r11 & push_r12 & push_r13 & push_r14
 {
 	#TODO
-#	R1_U = pop_rs;
+	R1_U = pop_rs;
 	
 	build reglist;
 	#TODO: order?
@@ -1377,18 +1501,182 @@ macro pop(r) {
 	if(push_r14:1 == 0) goto <nor14>;
 	 pop(R14_U);
 	<nor14>
-
 }
 :pop is op16_12_15=0b1110 & op16_0_3=0b1110 {
 	stub();
 }
 
 
-:pop.ret is op31=1 & op0_6=0b0011111 {
-	stub();
+:pop.ret pop_rs, reglist, "#"imm7_16 is op31=1 & reglist & op21=0 & pop_rs & imm7_16 & op0_6=0b0011111
+& push_r6 & push_r7 & push_r8 & push_r9 & push_r10 & push_r11 & push_r12 & push_r13 & push_r14
+{
+		#TODO
+	R1_U = pop_rs;
+	
+	build reglist;
+	#TODO: order?
+	
+	if(push_r6:1 == 0) goto <nor6>;
+	 pop(R6); 
+	<nor6>
+	
+	if(push_r7:1 == 0) goto <nor7>;
+	 pop(R7); 
+	<nor7>
+	
+	if(push_r8:1 == 0) goto <nor8>;
+	 pop(R8); 
+	<nor8>
+	
+	if(push_r9:1 == 0) goto <nor9>;
+	 pop(R9); 
+	<nor9>
+	
+	if(push_r10:1 == 0) goto <nor10>;
+	 pop(R10); 
+	<nor10>
+	
+	if(push_r11:1 == 0) goto <nor11>;
+	 pop(R11); 
+	<nor11>
+	
+	if(push_r12:1 == 0) goto <nor12>;
+	 pop(R12); 
+	<nor12>
+	
+	if(push_r13:1 == 0) goto <nor13>;
+	 pop(R13); 
+	<nor13>
+	
+	if(push_r14:1 == 0) goto <nor14>;
+	 pop(R14_U);
+	<nor14>
+	
+	flags_nz(R1_U);
+	local dest:4 = R14_U;
+	goto [dest];
 }
-:pop.ret is op16_12_15=0b1111 & op16_0_3=0b1110 {
-	stub();
+:pop.ret "#"imm17_20, reglist, "#"imm7_16 is op31=1 & reglist & op21=1 & imm17_20 & imm7_16 & op0_6=0b0011111
+& push_r6 & push_r7 & push_r8 & push_r9 & push_r10 & push_r11 & push_r12 & push_r13 & push_r14
+{
+			#TODO
+	R1_U = pop_rs;
+	
+	build reglist;
+	#TODO: order?
+	
+	if(push_r6:1 == 0) goto <nor6>;
+	 pop(R6); 
+	<nor6>
+	
+	if(push_r7:1 == 0) goto <nor7>;
+	 pop(R7); 
+	<nor7>
+	
+	if(push_r8:1 == 0) goto <nor8>;
+	 pop(R8); 
+	<nor8>
+	
+	if(push_r9:1 == 0) goto <nor9>;
+	 pop(R9); 
+	<nor9>
+	
+	if(push_r10:1 == 0) goto <nor10>;
+	 pop(R10); 
+	<nor10>
+	
+	if(push_r11:1 == 0) goto <nor11>;
+	 pop(R11); 
+	<nor11>
+	
+	if(push_r12:1 == 0) goto <nor12>;
+	 pop(R12); 
+	<nor12>
+	
+	if(push_r13:1 == 0) goto <nor13>;
+	 pop(R13); 
+	<nor13>
+	
+	if(push_r14:1 == 0) goto <nor14>;
+	 pop(R14_U);
+	<nor14>
+	
+	flags_nz(R1_U);
+	local dest:4 = R14_U;
+	goto [dest];
+}
+
+ret16:R0 is R0 & op16_10_11=0b00 { export *[const]:4 R0; }
+ret16:R1_U is R1_U & op16_10_11=0b01 { export *[const]:4 R1_U; }
+ret16:R6 is R6 & op16_10_11=0b10 { export *[const]:4 R6; }
+ret16:"1" is op16_10_11=0b11 { local tmp:4 = 1; export *[const]:4 tmp; }
+
+regset16: "{}" is imm16_4_7=0 {}
+regset16: "{" R14_U "}" is imm16_4_7=1 & R14_U [push_r14=1;] {}
+regset16: "{" R6 "}" is imm16_4_7=2 & R6 [push_r6=1;] {}
+regset16: "{" R6, R14_U "}" is imm16_4_7=3 & R6 & R14_U [push_r6=1; push_r14=1; ] {}
+regset16: "{" R6, R7 "}" is imm16_4_7=4 & R6 & R7 [push_r6=1; push_r7=1;] {}
+regset16: "{" R6, R7, R14_U "}" is imm16_4_7=5 & R6 & R7 & R14_U [push_r6=1; push_r7=1; push_r14=1;] {}
+regset16: "{" R6, R7, R8"}" is imm16_4_7=6 & R6 & R7 & R8 [push_r6=1; push_r7=1; push_r8=1;] {}
+regset16: "{" R6, R7, R8, R14_U "}" is imm16_4_7=7 & R6 & R7 & R8 & R14_U [push_r6=1; push_r7=1; push_r8=1; push_r14=1;] {}
+regset16: "{" R6, R7, R8, R9 "}" is imm16_4_7=8 & R6 & R7 & R8 & R9 [push_r6=1; push_r7=1; push_r8=1; push_r9=1;] {}
+regset16: "{" R6, R7, R8, R9, R14_U "}" is imm16_4_7=9 & R6 & R7 & R8 & R9 & R14_U [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r14=1;] {}
+regset16: "{" R6, R7, R8, R9, R10 "}" is imm16_4_7=10 & R6 & R7 & R8 & R9 & R10 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1;] {}
+regset16: "{" R6, R7, R8, R9, R10, R14_U "}" is imm16_4_7=11 & R6 & R7 & R8 & R9 & R10 & R14_U [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r14=1;] {}
+regset16: "{" R6, R7, R8, R9, R10, R11 "}" is imm16_4_7=12 & R6 & R7 & R8 & R9 & R10 & R11 [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1;] {}
+regset16: "{" R6, R7, R8, R9, R10, R11, R14_U "}" is imm16_4_7=13 & R6 & R7 & R8 & R9 & R10 & R11 & R14_U [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1; push_r14=1;] {}
+regset16: "{" R6, R7, R8, R9, R10, R11, R12, R14_U "}" is imm16_4_7=14 & R6 & R7 & R8 & R9 & R10 & R11 & R12 & R14_U [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1; push_r12=1; push_r14=1;] {}
+regset16: "{" R6, R7, R8, R9, R10, R11, R12, R13 R14_U "}" is imm16_4_7=15 & R6 & R7 & R8 & R9 & R10 & R11 & R12 & R13 & R14_U [push_r6=1; push_r7=1; push_r8=1; push_r9=1; push_r10=1; push_r11=1; push_r12=1; push_r13=1; push_r14=1;] {}
+
+
+:pop.ret ret16, "#"imm16_8_9, regset16 is op16_12_15=0b1111 & ret16 & imm16_8_9 & regset16 & op16_0_3=0b1110
+& push_r6 & push_r7 & push_r8 & push_r9 & push_r10 & push_r11 & push_r12 & push_r13 & push_r14
+{
+				#TODO
+	R1_U = ret16;
+	
+	build reglist;
+	#TODO: order?
+	
+	if(push_r6:1 == 0) goto <nor6>;
+	 pop(R6); 
+	<nor6>
+	
+	if(push_r7:1 == 0) goto <nor7>;
+	 pop(R7); 
+	<nor7>
+	
+	if(push_r8:1 == 0) goto <nor8>;
+	 pop(R8); 
+	<nor8>
+	
+	if(push_r9:1 == 0) goto <nor9>;
+	 pop(R9); 
+	<nor9>
+	
+	if(push_r10:1 == 0) goto <nor10>;
+	 pop(R10); 
+	<nor10>
+	
+	if(push_r11:1 == 0) goto <nor11>;
+	 pop(R11); 
+	<nor11>
+	
+	if(push_r12:1 == 0) goto <nor12>;
+	 pop(R12); 
+	<nor12>
+	
+	if(push_r13:1 == 0) goto <nor13>;
+	 pop(R13); 
+	<nor13>
+	
+	if(push_r14:1 == 0) goto <nor14>;
+	 pop(R14_U);
+	<nor14>
+	
+	flags_nz(R1_U);
+	local dest:4 = R14_U;
+	goto [dest];
 }
 
 define pcodeop print;
@@ -1396,9 +1684,72 @@ define pcodeop print;
     print(rs);
 }
 
-:push is op31=0 & op0_6=0b0000001 {
-	stub();
+#ldm_reglist15: R15_U is op31=1 & R15_U { R15_U = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
+#ldm_reglist15: "" is op31=0 {}
+#
+#ldm_reglist14: R14_U,ldm_reglist15 is op30=1 & ldm_reglist15 & R14_U { R14_U = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; build ldm_reglist15; }
+#ldm_reglist14: R14_U is op30=1 & op31=0 & R14_U { R14_U = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
+#ldm_reglist14: ldm_reglist15 is op30=0 & ldm_reglist15 { build ldm_reglist15; }
+#
+#ldm_reglist13: R13,ldm_reglist14 is op29=1 & ldm_reglist14 & R13 { R13 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; build ldm_reglist14; }
+#ldm_reglist13: R13 is op29=1 & op30_31=0 & R13 { R13 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
+#ldm_reglist13: ldm_reglist14 is op29=0 & ldm_reglist14 { build ldm_reglist14; }
+#
+#ldm_reglist12: R12,ldm_reglist13 is op28=1 & ldm_reglist13 & R12 { R12 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; build ldm_reglist13; }
+#ldm_reglist12: R12 is op28=1 & op29_31=0 & R12 { R12 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
+#ldm_reglist12: ldm_reglist13 is op28=0 & ldm_reglist13 { build ldm_reglist13; }
+#
+#ldm_reglist11: R11,ldm_reglist12 is op27=1 & ldm_reglist12 & R11 { R11 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; build ldm_reglist12; }
+#ldm_reglist11: R11 is op27=1 & op28_31=0 & R11 { R11 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
+#ldm_reglist11: ldm_reglist12 is op27=0 & ldm_reglist12 { build ldm_reglist12; }
+#
+#ldm_reglist10: R10,ldm_reglist11 is op26=1 & ldm_reglist11 & R10 { R10 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; build ldm_reglist11; }
+#ldm_reglist10: R10 is op26=1 & op27_31=0 & R10 { R10 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
+#ldm_reglist10: ldm_reglist11 is op26=0 & ldm_reglist11 { build ldm_reglist11; }
+#
+#ldm_reglist9: R9,ldm_reglist10 is op25=1 & ldm_reglist10 & R9 { R9 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; build ldm_reglist10; }
+#ldm_reglist9: R9 is op25=1 & op26_31=0 & R9 { R9 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
+#ldm_reglist9: ldm_reglist10 is op25=0 & ldm_reglist10 { build ldm_reglist10; }
+#
+#ldm_reglist8: R8,ldm_reglist9 is op24=1 & ldm_reglist9 & R8 { R8 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; build ldm_reglist9; }
+#ldm_reglist8: R8 is op24=1 & op25_31=0 & R8 { R8 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
+#ldm_reglist8: ldm_reglist9 is op24=0 & ldm_reglist9 { build ldm_reglist9; }
+#
+#ldm_reglist7: R7,ldm_reglist8 is op23=1 & ldm_reglist8 & R7 { R7 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; build ldm_reglist8; }
+#ldm_reglist7: R7 is op23=1 & op24_31=0 & R7 { R7 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
+#ldm_reglist7: ldm_reglist8 is op23=0 & ldm_reglist8 { build ldm_reglist8; }
+#
+#ldm_reglist6: R6,ldm_reglist7 is op22=1 & ldm_reglist7 & R6 { R6 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; build ldm_reglist7; }
+#ldm_reglist6: R6 is op22=1 & op23_31=0 & R6 { R6 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
+#ldm_reglist6: ldm_reglist7 is op22=0 & ldm_reglist7 { build ldm_reglist7; }
+#
+#ldm_reglist5: R5,ldm_reglist6 is op21=1 & ldm_reglist6 & R5 { R5 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; build ldm_reglist6; }
+#ldm_reglist5: R5 is op21=1 & op22_31=0 & R5 { R5 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
+#ldm_reglist5: ldm_reglist6 is op21=0 & ldm_reglist6 { build ldm_reglist6; }
+#
+#ldm_reglist4: R4,ldm_reglist5 is op20=1 & ldm_reglist5 & R4 { R4 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; build ldm_reglist5; }
+#ldm_reglist4: R4 is op20=1 & op21_31=0 & R4 { R4 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
+#ldm_reglist4: ldm_reglist5 is op20=0 & ldm_reglist5 { build ldm_reglist5; }
+#
+#ldm_reglist3: R3,ldm_reglist4 is op19=1 & ldm_reglist4 & R3 { R3 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; build ldm_reglist4; }
+#ldm_reglist3: R3 is op19=1 & op20_31=0 & R3 { R3 = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
+#ldm_reglist3: ldm_reglist4 is op19=0 & ldm_reglist4 { build ldm_reglist4; }
+#
+#ldm_reglist2: R2_U,ldm_reglist3 is op18=1 & ldm_reglist3 & R2_U { R2_U = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; build ldm_reglist3; }
+#ldm_reglist2: R2_U is op18=1 & op19_31=0  & R2_U { R2_U = *[ram]:4 ldm_src; ldm_src = ldm_src + 4; }
+#ldm_reglist2: ldm_reglist3 is op18=0 & ldm_reglist3 { build ldm_reglist3; }
+#
+push_reglist1: R1_U,push_reglist2 is op17=1 & push_reglist2 & R1_U { push(R1_U); build push_reglist2; }
+push_reglist1: R1_U is op17=1 & op18_31=0 & R1_U { push(R1_U); }
+push_reglist1: ldm_reglist2 is op17=0 & ldm_reglist2 { build push_reglist2; }
+
+
+push_reglist: "{" push_reglist1 "}" is ldm_reglist1 { build push_reglist1; }
+
+:push push_reglist, "#"imm7_16 is op31=0 & push_reglist & imm7_16 & op0_6=0b0000001 {
+	build push_reglist;
 }
+
 :push is op16_13_15=0b110 & op16_0_7=0b00001110 {
 	stub();
 }
